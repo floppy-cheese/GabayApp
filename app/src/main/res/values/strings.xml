@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gabay</string>
+    <string name="home">Home</string>
+    <string name="evacuate">Evacuate</string>
+    <string name="kit">Kit</string>
+    <string name="lessons">Lessons</string>
+    <string name="contacts">Contacts</string>
+
+    <!-- Home Screen -->
+    <string name="quick_actions">Quick Actions</string>
+    <string name="find_evacuation">Find Evacuation\nCenter</string>
+    <string name="plan_kit">Plan Emergency\nKit</string>
+    <string name="emergency_contacts">Emergency\nContacts</string>
+    <string name="safety_lessons">Safety\nLessons</string>
+
+    <!-- Evacuation -->
+    <string name="safety_check">Is it safe to travel right now?</string>
+    <string name="yes_safe">Yes, It\'s Safe</string>
+    <string name="no_safe">No, Not Safe</string>
+    <string name="find_center">Find Nearest Center</string>
+
+    <!-- Kit -->
+    <string name="household_size">Household Size</string>
+    <string name="basic_kit">Basic Emergency Kit</string>
+    <string name="additional_supplies">Additional Supplies (Optional)</string>
+
+    <!-- Lessons -->
+    <string name="earthquake">EARTHQUAKE</string>
+    <string name="typhoon">TYPHOON</string>
+    <string name="before">BEFORE</string>
+    <string name="during">DURING</string>
+    <string name="after">AFTER</string>
+</resources>

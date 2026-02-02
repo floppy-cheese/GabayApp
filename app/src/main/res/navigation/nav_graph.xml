@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.gabay.ui.home.HomeFragment"
+        android:label="Gabay" />
+
+    <fragment
+        android:id="@+id/evacuationFragment"
+        android:name="com.example.gabay.ui.evacuation.EvacuationFragment"
+        android:label="Evacuation" />
+
+    <fragment
+        android:id="@+id/kitFragment"
+        android:name="com.example.gabay.ui.kit.KitFragment"
+        android:label="Emergency Kit" />
+
+    <fragment
+        android:id="@+id/lessonsFragment"
+        android:name="com.example.gabay.ui.lessons.LessonsFragment"
+        android:label="Safety Lessons" />
+
+    <fragment
+        android:id="@+id/contactsFragment"
+        android:name="com.example.gabay.ui.contacts.ContactsFragment"
+        android:label="Emergency Contacts" />
+
+</navigation>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/homeFragment"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/evacuationFragment"
+        android:icon="@android:drawable/ic_menu_mylocation"
+        android:title="Evacuate" />
+
+    <item
+        android:id="@+id/kitFragment"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="Kit" />
+
+    <item
+        android:id="@+id/lessonsFragment"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="Lessons" />
+
+    <item
+        android:id="@+id/contactsFragment"
+        android:icon="@android:drawable/ic_menu_call"
+        android:title="Contacts" />
+
+</menu>
