@@ -141,8 +141,14 @@ class EvacuationFragment : Fragment() {
 
         viewModel.currentSpeed.observe(viewLifecycleOwner) { speed ->
             if (_binding != null) {
-                // Update speed display (optional)
-                android.util.Log.d("EvacuationFragment", "Current speed: $speed km/h")
+                val display = if (speed > 0.5) String.format("%.1f km/h", speed) else "-- km/h"
+                binding.tvSpeed.text = display
+            }
+        }
+
+        viewModel.remainingDistance.observe(viewLifecycleOwner) { distance ->
+            if (_binding != null && distance != null) {
+                binding.tvDistance.text = String.format("%.2f km", distance)
             }
         }
 
@@ -190,7 +196,7 @@ class EvacuationFragment : Fragment() {
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 title = "Evacuation Center"
                 snippet = "Your destination"
-                icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_launcher_foreground)
+                icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_evacuation_marker)
             }
             binding.mapView.overlays.add(destinationMarker)
         }

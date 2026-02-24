@@ -186,18 +186,26 @@ class EvacuationRepository(private val context: Context) {
             val costing = if (mode == TravelMode.WALKING) "pedestrian" else "auto"
 
             // Valhalla API endpoint (using public instance)
-            val url = "https://valhalla1.openstreetmap.de/route?" +
-                    "json={\"locations\":[" +
-                    "{\"lat\":$fromLat,\"lon\":$fromLon}," +
-                    "{\"lat\":$toLat,\"lon\":$toLon}" +
-                    "],\"costing\":\"$costing\",\"directions_options\":{\"units\":\"kilometers\"}}"
+            // NEW (POST with JSON body - more reliable)
+            val requestBody = """
+    {
+        "locations": [
+            {"lat": $fromLat, "lon": $fromLon},
+            {"lat": $toLat, "lon": $toLon}
+        ],
+        "costing": "$costing",
+        "directions_options": {"units": "kilometers"}
+    }
+""".trimIndent()
 
-            android.util.Log.d("EvacuationRepo", "Trying Valhalla routing...")
-
-            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            val connection = java.net.URL("https://valhalla1.openstreetmap.de/route")
+                .openConnection() as java.net.HttpURLConnection
             connection.connectTimeout = 10000
-            connection.readTimeout = 10000
-            connection.requestMethod = "GET"
+            connection.readTimeout = 15000
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.outputStream.use { it.write(requestBody.toByteArray()) }
 
             val responseCode = connection.responseCode
             android.util.Log.d("EvacuationRepo", "Valhalla Response Code: $responseCode")
@@ -292,7 +300,7 @@ class EvacuationRepository(private val context: Context) {
             val dlon = if (result and 1 != 0) (result shr 1).inv() else result shr 1
             lon += dlon
 
-            waypoints.add(Waypoint(lat / 1e5, lon / 1e5, "Route point"))
+            waypoints.add(Waypoint(lat / 1e6, lon / 1e6, "Route point"))
         }
 
         return waypoints

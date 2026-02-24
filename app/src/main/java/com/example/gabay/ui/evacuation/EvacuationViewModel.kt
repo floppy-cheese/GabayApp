@@ -24,6 +24,9 @@ class EvacuationViewModel(
     private val _currentLocation = MutableLiveData<Location?>()
     val currentLocation: LiveData<Location?> = _currentLocation
 
+    private val _remainingDistance = MutableLiveData<Double?>()
+    val remainingDistance: LiveData<Double?> = _remainingDistance
+
     private val _nearestCenter = MutableLiveData<EvacuationCenter?>()
     val nearestCenter: LiveData<EvacuationCenter?> = _nearestCenter
 
@@ -123,7 +126,7 @@ class EvacuationViewModel(
     fun startETATracking() {
         etaTrackingJob = viewModelScope.launch {
             while (true) {
-                delay(5000) // Update ETA every 5 seconds
+                delay(3000) // Update every 3 seconds
 
                 val location = _currentLocation.value
                 val center = _nearestCenter.value
@@ -138,18 +141,18 @@ class EvacuationViewModel(
                         center.longitude
                     )
 
-                    // Use actual speed if moving, otherwise use default speed
-                    val effectiveSpeed = if (speed > 1.0) {
-                        speed
-                    } else {
-                        if (mode == TravelMode.WALKING) 4.0 else 25.0
-                    }
+                    _remainingDistance.postValue(remainingDistance)
+
+                    val effectiveSpeed = if (speed > 1.0) speed
+                    else if (mode == TravelMode.WALKING) 4.0 else 25.0
 
                     val etaMinutes = ((remainingDistance / effectiveSpeed) * 60).toInt()
 
-                    android.util.Log.d("EvacuationVM", "ETA Update: ${remainingDistance}km remaining, speed: ${effectiveSpeed}km/h, ETA: ${etaMinutes}min")
-
                     _updatedETA.postValue(etaMinutes)
+
+                    android.util.Log.d("EvacuationVM",
+                        "Live update — dist: ${String.format("%.2f", remainingDistance)}km, " +
+                                "speed: ${String.format("%.1f", speed)}km/h, ETA: ${etaMinutes}min")
                 }
             }
         }
@@ -220,6 +223,7 @@ class EvacuationViewModel(
         _routeInfo.value = null
         _nearestCenter.value = null
         _updatedETA.value = null
+        _remainingDistance.value = null  // add this line
         currentTravelMode = null
     }
 

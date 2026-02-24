@@ -45,15 +45,12 @@ class HomeFragment : Fragment() {
         binding.btnEvacuation.setOnClickListener {
             findNavController().navigate(R.id.evacuationFragment)
         }
-
         binding.btnEmergencyKit.setOnClickListener {
             findNavController().navigate(R.id.kitFragment)
         }
-
         binding.btnContacts.setOnClickListener {
             findNavController().navigate(R.id.contactsFragment)
         }
-
         binding.btnLessons.setOnClickListener {
             findNavController().navigate(R.id.lessonsFragment)
         }

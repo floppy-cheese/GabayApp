@@ -34,12 +34,25 @@ class MainActivity : AppCompatActivity() {
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        // Setup bottom navigation with nav controller using NavigationUI
-        NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
+        // Keep bottom nav highlight in sync with current destination
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            binding.bottomNavigation.menu.findItem(destination.id)?.isChecked = true
+        }
 
-        // Prevent reselecting same item
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            navController.navigate(
+                item.itemId,
+                null,
+                androidx.navigation.NavOptions.Builder()
+                    .setPopUpTo(R.id.homeFragment, false)
+                    .setLaunchSingleTop(true)
+                    .build()
+            )
+            true
+        }
+
         binding.bottomNavigation.setOnItemReselectedListener {
-            // Do nothing - prevents reloading same fragment
+            // Do nothing
         }
     }
 
