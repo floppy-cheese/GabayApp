@@ -13,28 +13,33 @@ import com.example.gabay.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: androidx.navigation.NavController  // ADD THIS
     private val LOCATION_PERMISSION_CODE = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize View Binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Request location permissions
         requestLocationPermission()
-
-        // Setup navigation
         setupNavigation()
+
+        // Handle navigation from FullScreenAlertActivity
+        if (intent.getBooleanExtra("navigate_to_evacuation", false)) {
+            val isWalking = intent.getBooleanExtra("travel_mode_walking", true)
+            val bundle = Bundle().apply {
+                putBoolean("auto_travel_mode_walking", isWalking)
+                putBoolean("skip_safety_check", true)
+            }
+            navController.navigate(R.id.evacuationFragment, bundle)
+        }
     }
 
     private fun setupNavigation() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
+        navController = navHostFragment.navController  // ASSIGN TO CLASS PROPERTY
 
-        // Keep bottom nav highlight in sync with current destination
         navController.addOnDestinationChangedListener { _, destination, _ ->
             binding.bottomNavigation.menu.findItem(destination.id)?.isChecked = true
         }
@@ -51,9 +56,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        binding.bottomNavigation.setOnItemReselectedListener {
-            // Do nothing
-        }
+        binding.bottomNavigation.setOnItemReselectedListener { }
     }
 
     private fun requestLocationPermission() {

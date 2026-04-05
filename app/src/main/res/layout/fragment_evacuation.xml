@@ -142,6 +142,7 @@
                             android:layout_height="wrap_content"
                             android:text="🚶 Walking"
                             android:textSize="16sp"
+                            android:textColor="#333333"
                             android:checked="true" />
 
                         <RadioButton
@@ -150,7 +151,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="🚗 Vehicle"
-                            android:textSize="16sp" />
+                            android:textSize="16sp"
+                            android:textColor="#333333" />
 
                     </RadioGroup>
 
@@ -223,9 +225,9 @@
                     android:id="@+id/btnBackToSafety"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Back"
-                    android:backgroundTint="#757575"
-                    style="?attr/materialButtonOutlinedStyle" />
+                    android:text="Cancel"
+                    android:textColor="@color/white"
+                    android:backgroundTint="#F44336" />
 
             </LinearLayout>
 

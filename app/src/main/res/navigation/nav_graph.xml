@@ -13,7 +13,16 @@
     <fragment
         android:id="@+id/evacuationFragment"
         android:name="com.example.gabay.ui.evacuation.EvacuationFragment"
-        android:label="Evacuation" />
+        android:label="Evacuation">
+        <argument
+            android:name="skip_safety_check"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <argument
+            android:name="auto_travel_mode_walking"
+            app:argType="boolean"
+            android:defaultValue="true" />
+    </fragment>
 
     <fragment
         android:id="@+id/kitFragment"

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dark_background">#121212</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="dark_card">#F5F5F5</color>
+    <color name="dark_text_secondary">#AAAAAA</color>
+    <color name="bottom_nav_color_dark">#FFFFFF</color>
+</resources>

@@ -52,6 +52,25 @@ class EvacuationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Check if launched from full-screen alert
+        val skipSafetyCheck = arguments?.getBoolean("skip_safety_check", false) ?: false
+        val autoWalking = arguments?.getBoolean("auto_travel_mode_walking", true) ?: true
+
+        if (skipSafetyCheck) {
+            // Skip safety check, go straight to travel mode
+            binding.cardSafetyCheck.visibility = View.GONE
+            binding.cardTravelMode.visibility = View.VISIBLE
+            // Pre-select travel mode
+            if (autoWalking) {
+                binding.radioWalking.isChecked = true
+            } else {
+                binding.radioVehicle.isChecked = true
+            }
+            // Auto-trigger route finding
+            val travelMode = if (autoWalking) TravelMode.WALKING else TravelMode.VEHICLE
+            viewModel.findNearestCenter(travelMode)
+        }
+
         val locationRepo = LocationRepository(requireContext())
         val evacuationRepo = EvacuationRepository(requireContext())
         val factory = EvacuationViewModelFactory(locationRepo, evacuationRepo)
