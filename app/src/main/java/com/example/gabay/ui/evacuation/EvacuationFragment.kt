@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.example.gabay.R
 import com.example.gabay.databinding.FragmentEvacuationBinding
 import com.example.gabay.data.repository.LocationRepository
@@ -16,6 +17,9 @@ import com.example.gabay.data.repository.EvacuationRepository
 import com.example.gabay.data.models.TravelMode
 import com.google.android.material.snackbar.Snackbar
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
@@ -32,6 +36,7 @@ class EvacuationFragment : Fragment() {
     private var myLocationOverlay: MyLocationNewOverlay? = null
     private var destinationMarker: Marker? = null
     private var routeLine: Polyline? = null
+    private var faultLineOverlay: FaultLineOverlay? = null  // ← NEW
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,42 +44,41 @@ class EvacuationFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentEvacuationBinding.inflate(inflater, container, false)
-
-        // Initialize OSMDroid configuration
         Configuration.getInstance().load(
             requireContext(),
             PreferenceManager.getDefaultSharedPreferences(requireContext())
         )
-
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Check if launched from full-screen alert
-        val skipSafetyCheck = arguments?.getBoolean("skip_safety_check", false) ?: false
-        val autoWalking = arguments?.getBoolean("auto_travel_mode_walking", true) ?: true
-
-        if (skipSafetyCheck) {
-            // Skip safety check, go straight to travel mode
-            binding.cardSafetyCheck.visibility = View.GONE
-            binding.cardTravelMode.visibility = View.VISIBLE
-            // Pre-select travel mode
-            if (autoWalking) {
-                binding.radioWalking.isChecked = true
-            } else {
-                binding.radioVehicle.isChecked = true
-            }
-            // Auto-trigger route finding
-            val travelMode = if (autoWalking) TravelMode.WALKING else TravelMode.VEHICLE
-            viewModel.findNearestCenter(travelMode)
-        }
-
+        // THIS MUST BE FIRST — before anything else
         val locationRepo = LocationRepository(requireContext())
         val evacuationRepo = EvacuationRepository(requireContext())
         val factory = EvacuationViewModelFactory(locationRepo, evacuationRepo)
         viewModel = ViewModelProvider(this, factory)[EvacuationViewModel::class.java]
+
+        // Only NOW is it safe to use viewModel
+        val skipSafetyCheck = arguments?.getBoolean("skip_safety_check", false) ?: false
+        val autoWalking = arguments?.getBoolean("auto_travel_mode_walking", true) ?: true
+
+        if (skipSafetyCheck) {
+            binding.cardSafetyCheck.visibility = View.GONE
+            binding.cardTravelMode.visibility = View.VISIBLE
+            if (autoWalking) binding.radioWalking.isChecked = true
+            else binding.radioVehicle.isChecked = true
+
+            // Wait for first location fix before auto-triggering route
+            val travelMode = if (autoWalking) TravelMode.WALKING else TravelMode.VEHICLE
+            viewModel.currentLocation.observe(viewLifecycleOwner) { location ->
+                if (location != null && viewModel.routeInfo.value == null) {
+                    viewModel.findNearestCenter(travelMode)
+                    // Jump straight to map — skip the "Show Map and Route" button
+                }
+            }
+        }
 
         setupMap()
         setupUI()
@@ -82,18 +86,18 @@ class EvacuationFragment : Fragment() {
     }
 
     private fun setupMap() {
+        // Pre-load fault data in background immediately
+        faultLineOverlay = FaultLineOverlay(requireContext(), binding.mapView, lifecycleScope)
+        faultLineOverlay?.load()
+
         binding.mapView.apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
-
-            // Set default zoom to Philippines/Calamba area
             controller.setZoom(15.0)
-            controller.setCenter(GeoPoint(14.2108, 121.1649)) // Calamba center
+            controller.setCenter(GeoPoint(14.2108, 121.1649))
 
-            // Enable user location
             myLocationOverlay = MyLocationNewOverlay(
-                GpsMyLocationProvider(requireContext()),
-                this
+                GpsMyLocationProvider(requireContext()), this
             ).apply {
                 enableMyLocation()
                 enableFollowLocation()
@@ -116,30 +120,20 @@ class EvacuationFragment : Fragment() {
             ).show()
         }
 
-        // Listen to radio button changes
-        binding.radioGroupTravel.setOnCheckedChangeListener { _, checkedId ->
-            // Clear previous route when travel mode changes
+        binding.radioGroupTravel.setOnCheckedChangeListener { _, _ ->
             viewModel.clearRoute()
         }
 
         binding.btnFindCenter.setOnClickListener {
-            val travelMode = if (binding.radioWalking.isChecked) {
-                TravelMode.WALKING
-            } else {
-                TravelMode.VEHICLE
-            }
+            val travelMode = if (binding.radioWalking.isChecked) TravelMode.WALKING else TravelMode.VEHICLE
             viewModel.findNearestCenter(travelMode)
         }
 
-        binding.btnBackToSafety.setOnClickListener {
-            hideMap()
-        }
+        binding.btnBackToSafety.setOnClickListener { hideMap() }
     }
 
     private fun observeViewModel() {
-        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            // Show loading state (you can add a progress bar if needed)
-        }
+        viewModel.isLoading.observe(viewLifecycleOwner) { }
 
         viewModel.nearestCenter.observe(viewLifecycleOwner) { center ->
             if (_binding != null && center != null) {
@@ -152,8 +146,6 @@ class EvacuationFragment : Fragment() {
             if (_binding != null && route != null) {
                 binding.tvDistance.text = String.format("%.2f km", route.distanceKm)
                 binding.tvTime.text = "${route.estimatedTimeMinutes} min"
-
-                // Show map with route
                 showMapWithRoute(route)
             }
         }
@@ -179,37 +171,29 @@ class EvacuationFragment : Fragment() {
 
         viewModel.errorMessage.observe(viewLifecycleOwner) { error ->
             if (_binding != null) {
-                error?.let {
-                    Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show()
-                }
+                error?.let { Snackbar.make(binding.root, it, Snackbar.LENGTH_LONG).show() }
             }
         }
 
         viewModel.currentLocation.observe(viewLifecycleOwner) { location ->
             if (_binding != null && location != null) {
                 val userPoint = GeoPoint(location.latitude, location.longitude)
-                myLocationOverlay?.let {
-                    binding.mapView.controller.animateTo(userPoint)
-                }
+                myLocationOverlay?.let { binding.mapView.controller.animateTo(userPoint) }
             }
         }
     }
 
     private fun showMapWithRoute(route: com.example.gabay.data.models.RouteInfo) {
-        // Hide safety screens, show map
         binding.scrollSafetyScreen.visibility = View.GONE
         binding.mapView.visibility = View.VISIBLE
         binding.cardBottomInfo.visibility = View.VISIBLE
 
-        // Clear previous overlays (except location)
         destinationMarker?.let { binding.mapView.overlays.remove(it) }
         routeLine?.let { binding.mapView.overlays.remove(it) }
 
-        // Add destination marker
         val destination = route.waypoints.lastOrNull()
         destination?.let {
             val destPoint = GeoPoint(it.latitude, it.longitude)
-
             destinationMarker = Marker(binding.mapView).apply {
                 position = destPoint
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
@@ -220,25 +204,19 @@ class EvacuationFragment : Fragment() {
             binding.mapView.overlays.add(destinationMarker)
         }
 
-        // Draw route line - FIXED
         if (route.waypoints.size >= 2) {
-            val routePoints = route.waypoints.map {
-                GeoPoint(it.latitude, it.longitude)
-            }
-
+            val routePoints = route.waypoints.map { GeoPoint(it.latitude, it.longitude) }
             routeLine = Polyline(binding.mapView).apply {
                 setPoints(routePoints)
                 outlinePaint.color = Color.BLUE
                 outlinePaint.strokeWidth = 12f
                 outlinePaint.strokeCap = android.graphics.Paint.Cap.ROUND
             }
-            binding.mapView.overlays.add(0, routeLine) // Add at index 0 so it's below markers
+            // Route at index 0 (bottom), fault lines will be above it, markers on top
+            binding.mapView.overlays.add(0, routeLine)
         }
 
-        // Center map to show route
-        val startPoint = route.waypoints.firstOrNull()?.let {
-            GeoPoint(it.latitude, it.longitude)
-        }
+        val startPoint = route.waypoints.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
         startPoint?.let {
             binding.mapView.controller.animateTo(it)
             binding.mapView.controller.setZoom(14.5)
@@ -246,21 +224,17 @@ class EvacuationFragment : Fragment() {
 
         binding.mapView.invalidate()
 
-        // Start real-time ETA updates
         viewModel.startETATracking()
     }
 
     private fun hideMap() {
-        // Stop ETA tracking
         viewModel.stopETATracking()
-
         binding.mapView.visibility = View.GONE
         binding.cardBottomInfo.visibility = View.GONE
         binding.scrollSafetyScreen.visibility = View.VISIBLE
         binding.cardSafetyCheck.visibility = View.VISIBLE
         binding.cardTravelMode.visibility = View.GONE
 
-        // Clear map overlays
         destinationMarker?.let { binding.mapView.overlays.remove(it) }
         routeLine?.let { binding.mapView.overlays.remove(it) }
         binding.mapView.invalidate()
@@ -278,6 +252,8 @@ class EvacuationFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        faultLineOverlay?.clear()
+        faultLineOverlay = null
         binding.mapView.onDetach()
         myLocationOverlay?.disableMyLocation()
         myLocationOverlay = null

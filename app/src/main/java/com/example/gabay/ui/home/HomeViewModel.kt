@@ -40,6 +40,8 @@ class HomeViewModel(
     private var refreshJob: Job? = null
     private var isFirstLoad = true
 
+    private var lastFetchTime = 0L
+
     companion object {
         const val REFRESH_INTERVAL_MS = 5 * 60 * 1000L // 5 minutes
     }
@@ -84,12 +86,17 @@ class HomeViewModel(
     }
 
     fun fetchDisasterAlerts(location: Location? = _currentLocation.value) {
+        val now = System.currentTimeMillis()
+        // Don't fetch if we fetched less than 60 seconds ago
+        if (now - lastFetchTime < 60_000L && lastFetchTime != 0L) return
+
+        if (location == null) {
+            _isLoadingAlerts.value = false
+            return
+        }
+
+        lastFetchTime = now
         viewModelScope.launch {
-            // Don't fetch at all if we don't have location yet
-            if (location == null) {
-                _isLoadingAlerts.value = false
-                return@launch
-            }
             _isLoadingAlerts.value = true
             val alerts = disasterRepository.getDisasterAlerts(location)
             _disasterAlerts.value = alerts

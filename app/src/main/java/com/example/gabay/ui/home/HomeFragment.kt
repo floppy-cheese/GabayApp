@@ -1,5 +1,6 @@
 package com.example.gabay.ui.home
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -29,6 +30,21 @@ class HomeFragment : Fragment() {
     // Tracks whether the first live fetch has completed
     // Prevents notifying user on cached/stale data at startup
     private var hasCompletedFirstLiveFetch = false
+
+    private fun extractMagnitude(description: String): Double {
+        val regex = Regex("""Magnitude (\d+\.\d+)""")
+        return regex.find(description)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0
+    }
+
+    private fun extractLocation(description: String): String {
+        return description.lines().firstOrNull()
+            ?.replace(Regex("""^Magnitude \d+\.\d+ — """), "")
+            ?: "Unknown location"
+    }
+
+    private fun extractTime(description: String): String {
+        return description.lines().getOrNull(1) ?: ""
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -95,6 +111,35 @@ class HomeFragment : Fragment() {
         }
         binding.btnLessons.setOnClickListener {
             findNavController().navigate(R.id.lessonsFragment)
+        }
+
+        // ── Mock: Earthquake full screen alert ───────────────────────
+        binding.btnTestAlert.setOnClickListener {
+            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra("disaster_type", "EARTHQUAKE")
+                putExtra("magnitude", 6.2)
+                putExtra("location", "Tingloy, Batangas")
+                putExtra("distance", 45.0)
+                putExtra("reportedTime", "Reported on: Apr 06, 2026 at 03:14 PM")
+                putExtra("actionText", "EVACUATE NOW")
+            }
+            startActivity(intent)
+        }
+
+        // ── Mock: Typhoon full screen alert ──────────────────────────
+        binding.btnTestTyphoon.setOnClickListener {
+            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra("disaster_type", "TYPHOON")
+                putExtra("location", "Typhoon DANIKA")
+                putExtra("signal_no", "Signal No. 2")
+                putExtra("wind_speed", 120)
+                putExtra("distance", 150.0)
+                putExtra("reportedTime", "Updated: Apr 29, 2026 at 06:00 PM")
+                putExtra("actionText", "PREPARE TO EVACUATE")
+            }
+            startActivity(intent)
         }
     }
 
@@ -171,9 +216,27 @@ class HomeFragment : Fragment() {
                         (mostSevere.severity == Severity.HIGH ||
                                 mostSevere.severity == Severity.CRITICAL)
                     ) {
-                        AlertNotificationManager.sendDisasterNotification(
-                            requireContext(), mostSevere
-                        )
+                        val isTyphoon = mostSevere.type == com.example.gabay.data.models.DisasterType.TYPHOON
+                        val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            putExtra("disaster_type", if (isTyphoon) "TYPHOON" else "EARTHQUAKE")
+                            if (isTyphoon) {
+                                putExtra("location", mostSevere.description.lines().getOrNull(0) ?: "")
+                                putExtra("signal_no", mostSevere.description.lines().getOrNull(0)
+                                    ?.substringAfter("—")?.trim() ?: "")
+                                putExtra("wind_speed", Regex("""(\d+) km/h""")
+                                    .find(mostSevere.description)?.groupValues?.get(1)?.toIntOrNull() ?: 0)
+                            } else {
+                                putExtra("magnitude", extractMagnitude(mostSevere.description))
+                                putExtra("location", extractLocation(mostSevere.description))
+                            }
+                            putExtra("distance", mostSevere.distanceKm)
+                            putExtra("reportedTime", extractTime(mostSevere.description))
+                            putExtra("actionText", if (mostSevere.severity == Severity.CRITICAL)
+                                "EVACUATE NOW" else "PREPARE TO EVACUATE")
+                        }
+                        startActivity(intent)
+                        AlertNotificationManager.sendDisasterNotification(requireContext(), mostSevere)
                     }
                 }
             }
@@ -209,11 +272,18 @@ class HomeFragment : Fragment() {
                 )
             }
 
+            // Type-specific icon prefix
+            val typeIcon = when (alert.type) {
+                com.example.gabay.data.models.DisasterType.TYPHOON    -> "🌀"
+                com.example.gabay.data.models.DisasterType.EARTHQUAKE -> "🌍"
+                else -> ""
+            }
+
             binding.cardDisasterAlert.setCardBackgroundColor(
                 resources.getColor(bgColor, null)
             )
             binding.tvAlertTitle.setTextColor(resources.getColor(textColor, null))
-            binding.tvAlertTitle.text = "$emoji $actionText"
+            binding.tvAlertTitle.text = "$typeIcon $emoji $actionText"
             binding.tvAlertMessage.setTextColor(resources.getColor(textColor, null))
             binding.tvAlertMessage.text =
                 "${alert.description}\n${

@@ -5,6 +5,8 @@ import com.example.gabay.data.models.*
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import kotlin.math.*
@@ -13,39 +15,32 @@ class EvacuationRepository(private val context: Context) {
 
     private var allCenters: List<EvacuationCenter> = emptyList()
     private val gson = Gson()
+    private var isLoaded = false
 
-    init {
-        loadEvacuationCenters()
+    // No longer called in init — called lazily on IO thread
+    private suspend fun ensureLoaded() {
+        if (isLoaded) return
+        withContext(Dispatchers.IO) {
+            loadEvacuationCenters()
+            isLoaded = true
+        }
     }
 
     private fun loadEvacuationCenters() {
         try {
-            val inputStream = context.assets.open("ph_evacs_cleaned.geojson")
-            val reader = BufferedReader(InputStreamReader(inputStream))
+            // Read entire file at once — no line-by-line fragility
+            val json = context.assets.open("ph_evacs_merged.geojson")
+                .bufferedReader()
+                .readText()
 
-            val features = mutableListOf<JsonObject>()
-            var line: String?
+            val root = gson.fromJson(json, JsonObject::class.java)
+            val featuresArray = root.getAsJsonArray("features")
 
-            while (reader.readLine().also { line = it } != null) {
-                line?.let {
-                    if (it.trim().startsWith("{") && it.contains("\"type\": \"Feature\"")) {
-                        try {
-                            val cleanLine = it.trim().removeSuffix(",")
-                            val feature = gson.fromJson(cleanLine, JsonObject::class.java)
-                            features.add(feature)
-                        } catch (e: Exception) {
-                            // Skip malformed lines
-                        }
-                    }
-                }
-            }
+            android.util.Log.d("EvacuationRepo", "Parsed ${featuresArray.size()} features from GeoJSON")
 
-            reader.close()
-
-            android.util.Log.d("EvacuationRepo", "Parsed ${features.size} features from GeoJSON")
-
-            allCenters = features.mapIndexedNotNull { index, feature ->
+            allCenters = featuresArray.mapIndexedNotNull { index, element ->
                 try {
+                    val feature = element.asJsonObject
                     val properties = feature.getAsJsonObject("properties")
                     val geometry = feature.getAsJsonObject("geometry")
                     val geometryType = geometry.get("type").asString
@@ -140,12 +135,12 @@ class EvacuationRepository(private val context: Context) {
         }
     }
 
-    fun findNearestCenter(userLat: Double, userLon: Double): EvacuationCenter? {
+    suspend fun findNearestCenter(userLat: Double, userLon: Double): EvacuationCenter? {
+        ensureLoaded()
         if (allCenters.isEmpty()) {
             android.util.Log.e("EvacuationRepo", "No evacuation centers loaded!")
             return null
         }
-
         return allCenters
             .map { center ->
                 val distance = calculateDistance(userLat, userLon, center.latitude, center.longitude)
@@ -155,7 +150,10 @@ class EvacuationRepository(private val context: Context) {
             ?.first
     }
 
-    fun getAllCenters(): List<EvacuationCenter> = allCenters
+    suspend fun getAllCenters(): List<EvacuationCenter> {
+        ensureLoaded()
+        return allCenters
+    }
 
     suspend fun calculateRouteWithOSRM(
         fromLat: Double,
@@ -186,17 +184,39 @@ class EvacuationRepository(private val context: Context) {
             val costing = if (mode == TravelMode.WALKING) "pedestrian" else "auto"
 
             // Valhalla API endpoint (using public instance)
-            // NEW (POST with JSON body - more reliable)
-            val requestBody = """
-    {
-        "locations": [
-            {"lat": $fromLat, "lon": $fromLon},
-            {"lat": $toLat, "lon": $toLon}
-        ],
-        "costing": "$costing",
-        "directions_options": {"units": "kilometers"}
-    }
-""".trimIndent()
+            val requestBody = if (mode == TravelMode.WALKING) {
+                """
+                {
+                    "locations": [
+                        {"lat": $fromLat, "lon": $fromLon, "radius": 100},
+                        {"lat": $toLat, "lon": $toLon, "radius": 100}
+                    ],
+                    "costing": "pedestrian",
+                    "costing_options": {
+                        "pedestrian": {
+                            "use_roads": 1.0,
+                            "use_hills": 0.5,
+                            "walkway_factor": 1.0,
+                            "alley_factor": 2.0,
+                            "driveway_factor": 2.0,
+                            "step_penalty": 30
+                        }
+                    },
+                    "directions_options": {"units": "kilometers"}
+                }
+                """.trimIndent()
+                    } else {
+                        """
+                {
+                    "locations": [
+                        {"lat": $fromLat, "lon": $fromLon, "radius": 100},
+                        {"lat": $toLat, "lon": $toLon, "radius": 100}
+                    ],
+                    "costing": "auto",
+                    "directions_options": {"units": "kilometers"}
+                }
+                """.trimIndent()
+                    }
 
             val connection = java.net.URL("https://valhalla1.openstreetmap.de/route")
                 .openConnection() as java.net.HttpURLConnection

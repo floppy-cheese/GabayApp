@@ -75,30 +75,27 @@ class EvacuationViewModel(
     private fun calculateCurrentSpeed(location: Location) {
         val currentTime = System.currentTimeMillis()
 
-        // Use GPS speed if available and reliable (> 0.5 m/s)
-        if (location.hasSpeed() && location.speed > 0.5f) {
-            // Convert m/s to km/h
-            val speedKmh = (location.speed * 3.6).toDouble()
-            updateSpeedHistory(speedKmh)
-            android.util.Log.d("EvacuationVM", "GPS Speed: ${String.format("%.1f", speedKmh)} km/h")
-        } else if (previousLocation != null && previousTime > 0) {
-            // Calculate speed from position change
+        val prev = previousLocation
+        if (prev != null && previousTime > 0) {
             val timeDiffSeconds = (currentTime - previousTime) / 1000.0
 
-            if (timeDiffSeconds > 2) { // Only calculate if at least 2 seconds passed
-                val distance = previousLocation!!.distanceTo(location).toDouble() // meters
-                val speedMs = distance / timeDiffSeconds
-                val speedKmh = speedMs * 3.6
+            if (timeDiffSeconds >= 5.0) {
+                val distance = prev.distanceTo(location).toDouble()
 
-                // Filter out unrealistic speeds (> 150 km/h)
-                if (speedKmh < 150) {
-                    updateSpeedHistory(speedKmh)
-                    android.util.Log.d("EvacuationVM", "Calculated Speed: ${String.format("%.1f", speedKmh)} km/h")
+                // Ignore anything under 10m — pure GPS noise indoors
+                if (distance >= 10.0) {
+                    val speedKmh = (distance / timeDiffSeconds) * 3.6
+                    if (speedKmh < 150) {
+                        updateSpeedHistory(speedKmh)
+                    }
+                } else {
+                    // Stationary — drive average toward zero
+                    updateSpeedHistory(0.0)
                 }
-
                 previousLocation = location
                 previousTime = currentTime
             }
+            // If less than 5s passed, don't update — just wait
         } else {
             previousLocation = location
             previousTime = currentTime

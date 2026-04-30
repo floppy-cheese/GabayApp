@@ -24,6 +24,7 @@ class DisasterRepository(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("disaster_cache", Context.MODE_PRIVATE)
     private val gson = Gson()
+    private val typhoonRepository = TyphoonRepository(context)
 
     companion object {
         const val RADIUS_KM = 200.0
@@ -32,44 +33,50 @@ class DisasterRepository(private val context: Context) {
     }
 
     suspend fun getDisasterAlerts(userLocation: Location?): List<DisasterAlert> {
-        return try {
+        // ── TEMPORARY TEST — remove before final build ──────────────────
+        val mockTyphoon = DisasterAlert(
+            id = "typhoon_test",
+            type = DisasterType.TYPHOON,
+            description = "Typhoon DANIKA — Signal No. 2\nMax winds: 120 km/h\nUpdated: Apr 29, 2026 at 06:00 PM",
+            distanceKm = 150.0,
+            severity = Severity.HIGH,
+            isActive = true
+        )
+        return listOf(mockTyphoon)
+        // ── END TEMPORARY TEST ──────────────────────────────────────────
+        val earthquakeAlerts = try {
             val response = RetrofitInstance.earthquakeApi.getPhilippineEarthquakes()
             val rawEarthquakes = response.features.mapIndexedNotNull { index, feature ->
                 val mag = feature.properties.magnitude ?: return@mapIndexedNotNull null
                 if (mag < MIN_MAGNITUDE) return@mapIndexedNotNull null
-
                 val coords = feature.geometry.coordinates
                 if (coords.size < 2) return@mapIndexedNotNull null
-
                 val rawPlace = feature.properties.place ?: "Unknown location"
                 val place = parseUsgsPlace(rawPlace)
-
                 val timestamp = feature.properties.time ?: return@mapIndexedNotNull null
-
                 val sdf = java.text.SimpleDateFormat(
                     "MMM dd, yyyy 'at' hh:mm a", java.util.Locale.getDefault()
                 )
                 sdf.timeZone = java.util.TimeZone.getTimeZone("Asia/Manila")
                 val dateTimeStr = "Reported on: ${sdf.format(java.util.Date(timestamp))}"
-
-                CachedEarthquake(
-                    index = index,
-                    magnitude = mag,
-                    place = place,
-                    dateTimeStr = dateTimeStr,
-                    epicenterLat = coords[1],
-                    epicenterLon = coords[0],
-                    timestampMs = timestamp
-                )
+                CachedEarthquake(index, mag, place, dateTimeStr, coords[1], coords[0], timestamp)
             }
-
             cacheRawEarthquakes(rawEarthquakes)
             buildAlerts(rawEarthquakes, userLocation)
-
         } catch (e: Exception) {
-            val cached = getCachedEarthquakes()
-            buildAlerts(cached, userLocation)
+            buildAlerts(getCachedEarthquakes(), userLocation)
         }
+
+        val typhoonAlerts = try {
+            typhoonRepository.getTyphoonAlerts(userLocation)
+        } catch (e: Exception) {
+            android.util.Log.e("DisasterRepo", "Typhoon fetch failed: ${e.message}")
+            emptyList()
+        }
+
+        return earthquakeAlerts + typhoonAlerts
+
+
     }
 
     private fun buildAlerts(

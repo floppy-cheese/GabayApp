@@ -2,6 +2,7 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -12,7 +13,30 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- TEMPORARY: Test full-screen alert button — remove before release -->
+        <Button
+            android:id="@+id/btnTestAlert"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="TEST FULL SCREEN ALERT"
+            android:backgroundTint="#FF0000"
+            app:layout_constraintTop_toBottomOf="@id/btnContacts"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <!-- Location Display -->
+
+        <Button
+            android:id="@+id/btnTestTyphoon"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#2196F3"
+            android:text="TEST TYPHOON ALERT"
+            app:layout_constraintTop_toBottomOf="@+id/btnTestAlert"
+            tools:layout_editor_absoluteX="16dp" />
+
         <TextView
             android:id="@+id/tvLocation"
             android:layout_width="wrap_content"
