@@ -9,7 +9,6 @@ import com.example.gabay.data.models.RouteInfo
 import com.example.gabay.data.models.TravelMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -21,135 +20,258 @@ class EvacuationViewModel(
     private val evacuationRepository: EvacuationRepository
 ) : ViewModel() {
 
-    private val _currentLocation = MutableLiveData<Location?>()
+    // ── Public LiveData ───────────────────────────────────────────────────────
+
+    private val _currentLocation   = MutableLiveData<Location?>()
     val currentLocation: LiveData<Location?> = _currentLocation
+
+    private val _nearestCenter     = MutableLiveData<EvacuationCenter?>()
+    val nearestCenter: LiveData<EvacuationCenter?> = _nearestCenter
+
+    private val _routeInfo         = MutableLiveData<RouteInfo?>()
+    val routeInfo: LiveData<RouteInfo?> = _routeInfo
+
+    private val _currentSpeed      = MutableLiveData<Double>(0.0)
+    val currentSpeed: LiveData<Double> = _currentSpeed
 
     private val _remainingDistance = MutableLiveData<Double?>()
     val remainingDistance: LiveData<Double?> = _remainingDistance
 
-    private val _nearestCenter = MutableLiveData<EvacuationCenter?>()
-    val nearestCenter: LiveData<EvacuationCenter?> = _nearestCenter
-
-    private val _routeInfo = MutableLiveData<RouteInfo?>()
-    val routeInfo: LiveData<RouteInfo?> = _routeInfo
-
-    private val _currentSpeed = MutableLiveData<Double>(0.0) // km/h
-    val currentSpeed: LiveData<Double> = _currentSpeed
-
-    private val _updatedETA = MutableLiveData<Int?>()
+    private val _updatedETA        = MutableLiveData<Int?>()
     val updatedETA: LiveData<Int?> = _updatedETA
 
-    private val _errorMessage = MutableLiveData<String?>()
+    private val _errorMessage      = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
-    private val _isLoading = MutableLiveData(false)
+    private val _isLoading         = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private var locationJob: Job? = null
+    private val _alternatesRemaining = MutableLiveData(0)
+    val alternatesRemaining: LiveData<Int> = _alternatesRemaining
+
+    // ── Internal state ────────────────────────────────────────────────────────
+
+    private var locationJob:    Job? = null
     private var etaTrackingJob: Job? = null
+    private var routingJob:     Job? = null
 
     private var previousLocation: Location? = null
-    private var previousTime: Long = 0
+    private var previousTime:     Long = 0
     private val speedHistory = mutableListOf<Double>()
     private var currentTravelMode: TravelMode? = null
+
+    private var rankedCenters: List<EvacuationCenter> = emptyList()
+    private var currentCenterIndex = 0
+
+    /**
+     * Synchronous guard flag. Set to true BEFORE the coroutine launches so
+     * rapid taps on "Find Center" can never spawn multiple routing jobs.
+     * The Fragment checks this to disable the button immediately.
+     */
+    var isRoutingActive: Boolean = false
+        private set
+
+    companion object {
+        private const val MAX_ALTERNATES = 6
+    }
 
     init {
         startLocationTracking()
     }
 
+    // ── Location tracking ─────────────────────────────────────────────────────
+
     private fun startLocationTracking() {
         locationJob = viewModelScope.launch {
             locationRepository.getCurrentLocation()
-                .catch { e ->
-                    _currentLocation.value = null
-                }
+                .catch { _currentLocation.value = null }
                 .collectLatest { location ->
                     _currentLocation.value = location
-                    location?.let {
-                        calculateCurrentSpeed(it)
-                    }
+                    location?.let { calculateCurrentSpeed(it) }
                 }
         }
     }
 
     private fun calculateCurrentSpeed(location: Location) {
         val currentTime = System.currentTimeMillis()
-
         val prev = previousLocation
         if (prev != null && previousTime > 0) {
             val timeDiffSeconds = (currentTime - previousTime) / 1000.0
-
             if (timeDiffSeconds >= 5.0) {
                 val distance = prev.distanceTo(location).toDouble()
-
-                // Ignore anything under 10m — pure GPS noise indoors
                 if (distance >= 10.0) {
                     val speedKmh = (distance / timeDiffSeconds) * 3.6
-                    if (speedKmh < 150) {
-                        updateSpeedHistory(speedKmh)
-                    }
+                    if (speedKmh < 150) updateSpeedHistory(speedKmh)
                 } else {
-                    // Stationary — drive average toward zero
                     updateSpeedHistory(0.0)
                 }
                 previousLocation = location
-                previousTime = currentTime
+                previousTime     = currentTime
             }
-            // If less than 5s passed, don't update — just wait
         } else {
             previousLocation = location
-            previousTime = currentTime
+            previousTime     = currentTime
         }
     }
 
     private fun updateSpeedHistory(speed: Double) {
         speedHistory.add(speed)
-
-        // Keep only last 10 speed measurements
-        if (speedHistory.size > 10) {
-            speedHistory.removeAt(0)
-        }
-
-        // Calculate average speed (removes outliers)
-        val avgSpeed = if (speedHistory.size >= 3) {
+        if (speedHistory.size > 10) speedHistory.removeAt(0)
+        val avgSpeed = if (speedHistory.size >= 3)
             speedHistory.sorted().drop(1).dropLast(1).average()
-        } else {
+        else
             speedHistory.average()
-        }
-
         _currentSpeed.value = avgSpeed
     }
 
+    // ── Route finding ─────────────────────────────────────────────────────────
+
+    /**
+     * Primary entry-point called by the Fragment (button tap or auto-launch).
+     *
+     * [isRoutingActive] is set synchronously before the coroutine launches so
+     * no amount of rapid taps can create concurrent routing jobs.
+     */
+    fun findNearestCenter(travelMode: TravelMode) {
+        // Hard guard — synchronous, checked before any async work
+        if (isRoutingActive) {
+            android.util.Log.d("EvacuationVM", "findNearestCenter ignored — already routing")
+            return
+        }
+
+        val location = _currentLocation.value
+        if (location == null) {
+            _errorMessage.value = "Unable to get your location. Please enable location services."
+            return
+        }
+
+        // Mark active BEFORE launching — prevents race between quick successive calls
+        isRoutingActive      = true
+        routingJob?.cancel()
+        currentTravelMode    = travelMode
+        currentCenterIndex   = 0
+        rankedCenters        = emptyList()
+        _alternatesRemaining.value = 0
+
+        routingJob = viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val centers = withContext(Dispatchers.IO) {
+                    evacuationRepository.findNearestCenters(
+                        location.latitude, location.longitude, MAX_ALTERNATES
+                    )
+                }
+                if (centers.isEmpty()) {
+                    _errorMessage.value = "No evacuation centers found nearby."
+                    return@launch
+                }
+                rankedCenters = centers
+                _alternatesRemaining.value = (centers.size - 1).coerceAtLeast(0)
+                routeToCenter(location, centers[0], travelMode)
+            } catch (e: Exception) {
+                _errorMessage.value = "Error finding centers: ${e.message}"
+            } finally {
+                _isLoading.value = false
+                isRoutingActive  = false
+            }
+        }
+    }
+
+    fun switchToNextCenter(travelMode: TravelMode) {
+        if (isRoutingActive) return
+        if (currentCenterIndex >= rankedCenters.size - 1) {
+            _errorMessage.value = "No more alternate routes available."
+            return
+        }
+
+        val location = _currentLocation.value ?: run {
+            _errorMessage.value = "Unable to get your location."
+            return
+        }
+
+        isRoutingActive = true
+        routingJob?.cancel()
+        currentCenterIndex++
+        _alternatesRemaining.value = (rankedCenters.size - 1 - currentCenterIndex).coerceAtLeast(0)
+
+        val nextCenter = rankedCenters[currentCenterIndex]
+        android.util.Log.d("EvacuationVM",
+            "Switching to alternate #$currentCenterIndex: ${nextCenter.name}")
+
+        routingJob = viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                routeToCenter(location, nextCenter, travelMode)
+            } catch (e: Exception) {
+                _errorMessage.value = "Error calculating alternate route: ${e.message}"
+            } finally {
+                _isLoading.value = false
+                isRoutingActive  = false
+            }
+        }
+    }
+
+    /**
+     * Shared routing core. Runs the Valhalla call on IO.
+     * No retry loop here — the Repository handles a single attempt with a
+     * 5 s timeout and returns an enriched fallback (with synthetic maneuvers)
+     * if Valhalla is unreachable. Fail-fast is better than 30 s of retries.
+     */
+    private suspend fun routeToCenter(
+        location: Location,
+        center: EvacuationCenter,
+        travelMode: TravelMode
+    ) {
+        _nearestCenter.postValue(center)
+
+        val route = withContext(Dispatchers.IO) {
+            evacuationRepository.calculateRouteWithOSRM(
+                location.latitude, location.longitude,
+                center.latitude,   center.longitude,
+                travelMode
+            )
+        }
+
+        android.util.Log.d("EvacuationVM",
+            "Route ready for ${center.name}: ${route.distanceKm}km, ${route.maneuvers.size} maneuvers")
+        _routeInfo.postValue(route)
+    }
+
+    fun clearRoute() {
+        routingJob?.cancel()
+        routingJob           = null
+        isRoutingActive      = false
+        stopETATracking()
+        _routeInfo.value         = null
+        _nearestCenter.value     = null
+        _updatedETA.value        = null
+        _remainingDistance.value = null
+        _alternatesRemaining.value = 0
+        currentTravelMode        = null
+        rankedCenters            = emptyList()
+        currentCenterIndex       = 0
+    }
+
+    // ── ETA tracking ──────────────────────────────────────────────────────────
+
     fun startETATracking() {
+        etaTrackingJob?.cancel()
         etaTrackingJob = viewModelScope.launch {
             while (true) {
-                delay(3000) // Update every 3 seconds
-
+                kotlinx.coroutines.delay(3000)
                 val location = _currentLocation.value
-                val center = _nearestCenter.value
-                val speed = _currentSpeed.value ?: 0.0
-                val mode = currentTravelMode
-
+                val center   = _nearestCenter.value
+                val speed    = _currentSpeed.value ?: 0.0
+                val mode     = currentTravelMode
                 if (location != null && center != null && mode != null) {
-                    val remainingDistance = calculateDistance(
-                        location.latitude,
-                        location.longitude,
-                        center.latitude,
-                        center.longitude
+                    val remaining = calculateDistance(
+                        location.latitude, location.longitude,
+                        center.latitude,   center.longitude
                     )
-
-                    _remainingDistance.postValue(remainingDistance)
-
+                    _remainingDistance.postValue(remaining)
                     val effectiveSpeed = if (speed > 1.0) speed
                     else if (mode == TravelMode.WALKING) 4.0 else 25.0
-
-                    val etaMinutes = ((remainingDistance / effectiveSpeed) * 60).toInt()
-
-                    _updatedETA.postValue(etaMinutes)
-
-                    android.util.Log.d("EvacuationVM",
-                        "Live update — dist: ${String.format("%.2f", remainingDistance)}km, " +
-                                "speed: ${String.format("%.1f", speed)}km/h, ETA: ${etaMinutes}min")
+                    _updatedETA.postValue(((remaining / effectiveSpeed) * 60).toInt())
                 }
             }
         }
@@ -157,99 +279,34 @@ class EvacuationViewModel(
 
     fun stopETATracking() {
         etaTrackingJob?.cancel()
-        etaTrackingJob = null
+        etaTrackingJob   = null
         speedHistory.clear()
         previousLocation = null
-        previousTime = 0
+        previousTime     = 0
         _currentSpeed.value = 0.0
     }
 
-    fun findNearestCenter(travelMode: TravelMode) {
-        currentTravelMode = travelMode
-        val location = _currentLocation.value
+    // ── Geometry ──────────────────────────────────────────────────────────────
 
-        if (location == null) {
-            _errorMessage.value = "Unable to get your location. Please enable location services."
-            return
-        }
-
-        viewModelScope.launch {
-            _isLoading.value = true
-
-            try {
-                // Find nearest center
-                val center = withContext(Dispatchers.IO) {
-                    evacuationRepository.findNearestCenter(
-                        location.latitude,
-                        location.longitude
-                    )
-                }
-
-                if (center == null) {
-                    _errorMessage.value = "No evacuation centers found in the database."
-                    _isLoading.value = false
-                    return@launch
-                }
-
-                _nearestCenter.value = center
-
-                // Calculate route with Valhalla
-                val route = withContext(Dispatchers.IO) {
-                    evacuationRepository.calculateRouteWithOSRM(
-                        location.latitude,
-                        location.longitude,
-                        center.latitude,
-                        center.longitude,
-                        travelMode
-                    )
-                }
-
-                _routeInfo.value = route
-
-            } catch (e: Exception) {
-                _errorMessage.value = "Error: ${e.message}"
-                e.printStackTrace()
-            } finally {
-                _isLoading.value = false
-            }
-        }
-    }
-
-    fun clearRoute() {
-        stopETATracking()
-        _routeInfo.value = null
-        _nearestCenter.value = null
-        _updatedETA.value = null
-        _remainingDistance.value = null  // add this line
-        currentTravelMode = null
-    }
-
-    private fun calculateDistance(
-        lat1: Double,
-        lon1: Double,
-        lat2: Double,
-        lon2: Double
-    ): Double {
-        val r = 6371.0
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r    = 6371.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
-
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
+        val a    = sin(dLat / 2).pow(2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+        return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
     override fun onCleared() {
         super.onCleared()
+        routingJob?.cancel()
         stopETATracking()
         locationJob?.cancel()
-        locationJob = null
-        _nearestCenter.value = null
-        _routeInfo.value = null
-        _errorMessage.value = null
+        locationJob            = null
+        isRoutingActive        = false
+        _nearestCenter.value   = null
+        _routeInfo.value       = null
+        _errorMessage.value    = null
         _currentLocation.value = null
     }
 }

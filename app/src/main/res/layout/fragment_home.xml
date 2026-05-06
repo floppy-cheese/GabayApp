@@ -19,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="TEST FULL SCREEN ALERT"
+            android:text="TEST EARTHQUAKE ALERT"
             android:backgroundTint="#FF0000"
             app:layout_constraintTop_toBottomOf="@id/btnContacts"
             app:layout_constraintStart_toStartOf="parent"
@@ -35,6 +35,16 @@
             android:backgroundTint="#2196F3"
             android:text="TEST TYPHOON ALERT"
             app:layout_constraintTop_toBottomOf="@+id/btnTestAlert"
+            tools:layout_editor_absoluteX="16dp" />
+
+        <Button
+            android:id="@+id/btnTestNotification"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#FF9800"
+            android:text="TEST NOTIFICATION"
+            app:layout_constraintTop_toBottomOf="@+id/btnTestTyphoon"
             tools:layout_editor_absoluteX="16dp" />
 
         <TextView

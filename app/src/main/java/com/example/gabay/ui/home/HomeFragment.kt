@@ -141,6 +141,19 @@ class HomeFragment : Fragment() {
             }
             startActivity(intent)
         }
+
+        // ── Mock: Notification alert ──────────────────────────
+        binding.btnTestNotification.setOnClickListener {
+            val mockAlert = DisasterAlert(
+                id = "notif_test",
+                type = com.example.gabay.data.models.DisasterType.TYPHOON,
+                description = "Typhoon DANIKA — Signal No. 2\nMax winds: 120 km/h\nUpdated: Apr 29, 2026 at 06:00 PM",
+                distanceKm = 150.0,
+                severity = Severity.HIGH,
+                isActive = true
+            )
+            AlertNotificationManager.sendDisasterNotification(requireContext(), mockAlert)
+        }
     }
 
     private fun observeLocation() {

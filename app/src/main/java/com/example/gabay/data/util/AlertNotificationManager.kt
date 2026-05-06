@@ -63,8 +63,18 @@ object AlertNotificationManager {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_CLEAR_TOP or
                         Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("magnitude", extractMagnitude(alert.description))
-                putExtra("location", extractLocation(alert.description))
+                val isTyphoon = alert.type == com.example.gabay.data.models.DisasterType.TYPHOON
+                putExtra("disaster_type", if (isTyphoon) "TYPHOON" else "EARTHQUAKE")
+                if (isTyphoon) {
+                    putExtra("location", alert.description.lines().getOrNull(0) ?: "")
+                    putExtra("signal_no", alert.description.lines().getOrNull(0)
+                        ?.substringAfter("—")?.trim() ?: "")
+                    putExtra("wind_speed", Regex("""(\d+) km/h""")
+                        .find(alert.description)?.groupValues?.get(1)?.toIntOrNull() ?: 0)
+                } else {
+                    putExtra("magnitude", extractMagnitude(alert.description))
+                    putExtra("location", extractLocation(alert.description))
+                }
                 putExtra("distance", alert.distanceKm)
                 putExtra("reportedTime", extractTime(alert.description))
                 putExtra("actionText", if (isCritical) "EVACUATE NOW" else "PREPARE TO EVACUATE")
@@ -145,21 +155,23 @@ object AlertNotificationManager {
 
     private fun buildNotificationContent(alert: DisasterAlert): Pair<String, String> {
         val distanceText = "~${String.format("%.1f", alert.distanceKm)} km from you"
+        val isTyphoon = alert.type == com.example.gabay.data.models.DisasterType.TYPHOON
+
         return when (alert.severity) {
             Severity.CRITICAL -> Pair(
                 "🚨 EVACUATE NOW",
                 "${alert.description} | $distanceText. Move to your nearest evacuation center immediately."
             )
             Severity.HIGH -> Pair(
-                "⚠️ Earthquake Warning",
+                if (isTyphoon) "🌀 Typhoon Warning" else "⚠️ Earthquake Warning",
                 "${alert.description} | $distanceText. Prepare to evacuate. Stay alert."
             )
             Severity.MODERATE -> Pair(
-                "⚠️ Earthquake Detected",
+                if (isTyphoon) "🌀 Typhoon Alert" else "⚠️ Earthquake Detected",
                 "${alert.description} | $distanceText. Monitor the situation."
             )
             Severity.LOW -> Pair(
-                "ℹ️ Seismic Activity",
+                if (isTyphoon) "🌀 Typhoon Advisory" else "ℹ️ Seismic Activity",
                 "${alert.description} | $distanceText."
             )
         }

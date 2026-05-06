@@ -33,17 +33,6 @@ class DisasterRepository(private val context: Context) {
     }
 
     suspend fun getDisasterAlerts(userLocation: Location?): List<DisasterAlert> {
-        // ── TEMPORARY TEST — remove before final build ──────────────────
-        val mockTyphoon = DisasterAlert(
-            id = "typhoon_test",
-            type = DisasterType.TYPHOON,
-            description = "Typhoon DANIKA — Signal No. 2\nMax winds: 120 km/h\nUpdated: Apr 29, 2026 at 06:00 PM",
-            distanceKm = 150.0,
-            severity = Severity.HIGH,
-            isActive = true
-        )
-        return listOf(mockTyphoon)
-        // ── END TEMPORARY TEST ──────────────────────────────────────────
         val earthquakeAlerts = try {
             val response = RetrofitInstance.earthquakeApi.getPhilippineEarthquakes()
             val rawEarthquakes = response.features.mapIndexedNotNull { index, feature ->
