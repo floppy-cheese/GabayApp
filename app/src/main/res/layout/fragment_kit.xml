@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- Header -->
     <LinearLayout
         android:id="@+id/layoutHeader"
         android:layout_width="0dp"
@@ -39,7 +38,6 @@
 
     </LinearLayout>
 
-    <!-- Use NestedScrollView instead of ScrollView -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -55,7 +53,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Household Size Input -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -124,7 +121,6 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Basic Kit Items -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -134,7 +130,6 @@
                 android:textStyle="bold"
                 android:textColor="#333333" />
 
-            <!-- Use wrap_content and disable nested scrolling -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerBasicKit"
                 android:layout_width="match_parent"
@@ -142,7 +137,6 @@
                 android:layout_marginTop="12dp"
                 android:nestedScrollingEnabled="false" />
 
-            <!-- Additional Items -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

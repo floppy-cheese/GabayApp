@@ -40,14 +40,10 @@ class EvacuationFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var viewModel: EvacuationViewModel
 
-    // ── Map overlays ──────────────────────────────────────────────────────────
-
     private var userMarker: Marker? = null
     private var destinationMarker: Marker? = null
     private var routeLine: Polyline? = null
     private var faultLineOverlay: FaultLineOverlay? = null
-
-    // ── Navigation state ──────────────────────────────────────────────────────
 
     private var activeRoute: RouteInfo? = null
     private var currentManeuverIndex = 0
@@ -55,15 +51,9 @@ class EvacuationFragment : Fragment() {
     private var lastKnownLocation: Location? = null
     private var lastKnownGeoPoint: GeoPoint? = null
 
-    // ── Loading / launch state ────────────────────────────────────────────────
-
     private var isAutoLaunch = false
     private var hasFirstFix  = false
-    // Set to true BEFORE findNearestCenter() is called so the observer
-    // can't double-fire a second routing job while the first is running.
     private var isCalculatingRoute = false
-
-    // ── Location ──────────────────────────────────────────────────────────────
 
     private var locationManager: LocationManager? = null
 
@@ -78,8 +68,6 @@ class EvacuationFragment : Fragment() {
 
         onLocationUpdate(location)
     }
-
-    // ── Sensors ───────────────────────────────────────────────────────────────
 
     private var sensorManager: SensorManager? = null
     private var rotationSensor: Sensor? = null
@@ -114,8 +102,6 @@ class EvacuationFragment : Fragment() {
         }
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentEvacuationBinding.inflate(inflater, container, false)
         Configuration.getInstance().load(requireContext(), PreferenceManager.getDefaultSharedPreferences(requireContext()))
@@ -139,8 +125,6 @@ class EvacuationFragment : Fragment() {
 
             val travelMode = if (autoWalking) TravelMode.WALKING else TravelMode.VEHICLE
 
-            // Single-shot observer: fires once when we have a location and no route yet.
-            // isCalculatingRoute is set synchronously so a second emission can't double-fire.
             viewModel.currentLocation.observe(viewLifecycleOwner) { location ->
                 if (location != null && viewModel.routeInfo.value == null && !isCalculatingRoute && !viewModel.isRoutingActive) {
                     isCalculatingRoute = true
@@ -181,8 +165,6 @@ class EvacuationFragment : Fragment() {
         routeLine         = null
         _binding          = null
     }
-
-    // ── Setup ─────────────────────────────────────────────────────────────────
 
     private fun setupSensors() {
         sensorManager  = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -268,8 +250,6 @@ class EvacuationFragment : Fragment() {
         }
         binding.radioGroupTravel.setOnCheckedChangeListener { _, _ -> viewModel.clearRoute() }
 
-        // ── "Show Map and Route" button ───────────────────────────────────────
-        // Disabled immediately on first tap; re-enabled if routing fails.
         binding.btnFindCenter.setOnClickListener {
             if (viewModel.isRoutingActive) return@setOnClickListener   // hard guard
             binding.btnFindCenter.isEnabled = false
@@ -279,7 +259,6 @@ class EvacuationFragment : Fragment() {
 
         binding.btnBackToSafety.setOnClickListener { hideMap() }
 
-        // ── "Path Blocked?" reroute button ───────────────────────────────────
         binding.btnReroute.setOnClickListener {
             val mode = viewModel.currentLocation.value?.let {
                 if (binding.radioWalking.isChecked) TravelMode.WALKING else TravelMode.VEHICLE
@@ -287,8 +266,6 @@ class EvacuationFragment : Fragment() {
             viewModel.switchToNextCenter(mode)
         }
     }
-
-    // ── ViewModel observation ─────────────────────────────────────────────────
 
     private fun observeViewModel() {
         viewModel.nearestCenter.observe(viewLifecycleOwner) { center ->
@@ -301,8 +278,8 @@ class EvacuationFragment : Fragment() {
         viewModel.routeInfo.observe(viewLifecycleOwner) { route ->
             if (_binding == null || route == null) return@observe
             hideLoadingOverlay()
-            isCalculatingRoute       = false           // allow re-trigger if needed
-            binding.btnFindCenter.isEnabled = true     // re-enable for manual re-search
+            isCalculatingRoute       = false
+            binding.btnFindCenter.isEnabled = true
             binding.tvDistance.text  = String.format("%.2f km", route.distanceKm)
             binding.tvTime.text      = "${route.estimatedTimeMinutes} min"
             showMapWithRoute(route)
@@ -322,7 +299,6 @@ class EvacuationFragment : Fragment() {
             if (_binding != null && eta != null) binding.tvTime.text = "$eta min"
         }
 
-        // Disable "Path Blocked?" when no alternates remain
         viewModel.alternatesRemaining.observe(viewLifecycleOwner) { remaining ->
             if (_binding != null) {
                 binding.btnReroute.isEnabled = (remaining ?: 0) > 0
@@ -342,8 +318,6 @@ class EvacuationFragment : Fragment() {
         }
     }
 
-    // ── Loading overlay ───────────────────────────────────────────────────────
-
     private fun showLoadingOverlay(status: String) {
         binding.loadingOverlay.visibility = View.VISIBLE
         binding.tvLoadingStatus.text      = status
@@ -357,20 +331,8 @@ class EvacuationFragment : Fragment() {
         if (_binding != null) binding.loadingOverlay.visibility = View.GONE
     }
 
-    // ── Location updates ──────────────────────────────────────────────────────
-
-    /**
-     * Called on every GPS tick (every ~1 s while moving).
-     *
-     * Camera policy:
-     * - Only animate the camera if the user has moved at least 15 m since the last
-     *   camera update. This prevents jitter when standing still or moving slowly
-     *   (where sub-meter GPS noise was causing constant re-centering).
-     * - When moving fast (speed > 5 km/h from GPS) we use setCenter (instant snap)
-     *   instead of animateTo so the animation can't lag behind the vehicle.
-     */
     private var lastCameraGeoPoint: GeoPoint? = null
-    private val CAMERA_MOVE_THRESHOLD_M = 15f   // only update camera if moved this far
+    private val CAMERA_MOVE_THRESHOLD_M = 15f
 
     private fun onLocationUpdate(location: Location) {
         val point = GeoPoint(location.latitude, location.longitude)
@@ -392,11 +354,9 @@ class EvacuationFragment : Fragment() {
             if (movedEnough) {
                 lastCameraGeoPoint = point
                 if (speedKmh > 5f) {
-                    // Fast movement → instant snap, no animation lag
                     binding.mapView.controller.setZoom(18.0)
                     binding.mapView.controller.setCenter(point)
                 } else {
-                    // Slow / stationary → smooth animate
                     binding.mapView.controller.setZoom(18.0)
                     binding.mapView.controller.animateTo(point)
                 }
@@ -419,8 +379,6 @@ class EvacuationFragment : Fragment() {
         binding.mapView.invalidate()
     }
 
-    // ── Bearing / compass ─────────────────────────────────────────────────────
-
     private fun applyBearing(rawBearing: Float) {
         val normalized = ((rawBearing % 360) + 360) % 360
         lastBearing    = lastBearing + 0.15f * shortestAngularDelta(lastBearing, normalized)
@@ -433,8 +391,6 @@ class EvacuationFragment : Fragment() {
         while (d < -180f) d += 360f
         return d
     }
-
-    // ── Turn-by-turn ──────────────────────────────────────────────────────────
 
     private fun advanceManeuverIfNeeded(userLat: Double, userLon: Double) {
         val route    = activeRoute ?: return
@@ -460,13 +416,11 @@ class EvacuationFragment : Fragment() {
         else      -> "In ${"%.1f".format(km)} km"
     }
 
-    // ── Map display ───────────────────────────────────────────────────────────
-
     private fun showMapWithRoute(route: RouteInfo) {
         activeRoute          = route
         currentManeuverIndex = 0
         isCameraLocked       = true
-        lastCameraGeoPoint   = null     // reset so camera moves immediately on first tick
+        lastCameraGeoPoint   = null
         binding.fabRecenter.hide()
 
         attachNavigationMapListeners()
@@ -475,15 +429,12 @@ class EvacuationFragment : Fragment() {
         binding.mapContainer.visibility       = View.VISIBLE
         binding.cardBottomInfo.visibility     = View.VISIBLE
 
-        // Banner: always show if maneuvers exist (fallback now always has them)
         binding.bannerContainer.visibility =
             if (route.maneuvers.isNotEmpty()) View.VISIBLE else View.GONE
 
-        // ── Remove old overlays (in-place reroute keeps the map visible) ──────
         destinationMarker?.let { binding.mapView.overlays.remove(it) }
         routeLine?.let         { binding.mapView.overlays.remove(it) }
 
-        // ── New destination marker ─────────────────────────────────────────────
         route.waypoints.lastOrNull()?.let {
             destinationMarker = Marker(binding.mapView).apply {
                 position = GeoPoint(it.latitude, it.longitude)
@@ -495,7 +446,6 @@ class EvacuationFragment : Fragment() {
             binding.mapView.overlays.add(destinationMarker)
         }
 
-        // ── New route polyline ─────────────────────────────────────────────────
         if (route.waypoints.size >= 2) {
             routeLine = Polyline(binding.mapView).apply {
                 setPoints(route.waypoints.map { GeoPoint(it.latitude, it.longitude) })
@@ -506,7 +456,6 @@ class EvacuationFragment : Fragment() {
             binding.mapView.overlays.add(0, routeLine)
         }
 
-        // ── Camera ────────────────────────────────────────────────────────────
         val centerPoint = lastKnownGeoPoint ?: route.waypoints.firstOrNull()
             ?.let { GeoPoint(it.latitude, it.longitude) }
         centerPoint?.let {
@@ -518,7 +467,6 @@ class EvacuationFragment : Fragment() {
         binding.mapView.invalidate()
         viewModel.startETATracking()
 
-        // Seed the banner immediately without waiting for next GPS tick
         lastKnownLocation?.let {
             advanceManeuverIfNeeded(it.latitude, it.longitude)
             onLocationUpdate(it)
@@ -550,8 +498,6 @@ class EvacuationFragment : Fragment() {
         binding.mapView.mapOrientation = 0f
         binding.mapView.invalidate()
     }
-
-    // ── Geometry ──────────────────────────────────────────────────────────────
 
     private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val r    = 6371.0

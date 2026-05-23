@@ -96,8 +96,6 @@ class ContactRepository(private val context: Context) {
     )
 
     fun getLocalAuthorityContacts(city: String): List<EmergencyContact> {
-        // Normalize: lowercase, trim, strip trailing " city" so
-        // "Valenzuela City", "valenzuela city", "Valenzuela" all match
         val normalized = city.lowercase().trim().removeSuffix(" city").trim()
 
         return when (normalized) {
@@ -246,7 +244,6 @@ class ContactRepository(private val context: Context) {
                 )
             )
 
-            // Source: valenzuela.gov.ph/emergency-hotlines-numbers/
             "valenzuela" -> listOf(
                 EmergencyContact(
                     id = "local-val-1",

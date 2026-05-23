@@ -32,7 +32,6 @@ class FaultLineOverlay(
         val points: List<GeoPoint>
     )
 
-    /** Call once on fragment start — loads and draws immediately, no zoom gating. */
     fun load() {
         if (isLoaded) return
         scope.launch {
@@ -102,7 +101,6 @@ class FaultLineOverlay(
                         }
                     }
                     "MultiLineString" -> {
-                        // Flatten all segments into one continuous list of points
                         for (s in 0 until coordsArray.length()) {
                             val segment = coordsArray.getJSONArray(s)
                             for (j in 0 until segment.length()) {

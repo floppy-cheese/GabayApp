@@ -83,7 +83,6 @@ class DisasterRepository(private val context: Context) {
                 userLocation.distanceTo(eqLocation) / 1000.0
             } else null
 
-            // Filter by radius if location known
             if (distanceKm != null && distanceKm > RADIUS_KM) return@mapNotNull null
 
             // Time relevance filter
@@ -92,17 +91,16 @@ class DisasterRepository(private val context: Context) {
             val dist = distanceKm ?: 999.0
 
             val maxAgeDays = when {
-                eq.magnitude >= 6.0 -> 7L          // Major quake always shown for 7 days
-                dist <= 50.0        -> 7L           // Nearby: stay cautious for aftershocks
-                dist <= 100.0       -> 3L           // Regional: 3 days
-                else                -> 1L           // Distant minor: 1 day only
+                eq.magnitude >= 6.0 -> 7L
+                dist <= 50.0        -> 7L
+                dist <= 100.0       -> 3L
+                else                -> 1L
             }
 
             if (ageDays > maxAgeDays) return@mapNotNull null
 
             val severity = calculateSeverity(eq.magnitude, dist)
 
-            // Aftershock warning for nearby older quakes
             val isOldNearby = ageDays >= 1 && dist <= 50.0
             val descriptionPrefix = if (isOldNearby) "⚠️ Aftershock risk — " else ""
 
@@ -249,10 +247,9 @@ class DisasterRepository(private val context: Context) {
     }
 
     init {
-        // Clear old cache format to prevent stale alerts from showing
         prefs.edit()
-            .remove("cached_alerts")     // old format
-            .remove("cached_earthquakes") // current format — force fresh fetch
+            .remove("cached_alerts")
+            .remove("cached_earthquakes")
             .apply()
     }
 }

@@ -17,7 +17,7 @@ import java.net.URL
 
 data class TyphoonData(
     val name: String,
-    val category: String,       // "Typhoon", "Tropical Storm", "Tropical Depression"
+    val category: String,
     val windSpeedKph: Double,
     val centerLat: Double,
     val centerLon: Double,
@@ -85,11 +85,15 @@ class TyphoonRepository(private val context: Context) {
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 when (eventType) {
                     XmlPullParser.START_TAG -> when (parser.name.lowercase()) {
-                        "item" -> { inItem = true; title = ""; description = ""; pubDate = "" }
+                        "item" -> {
+                            inItem = true; title = ""; description = ""; pubDate = ""
+                        }
+
                         "title" -> if (inItem) title = parser.nextText()
                         "description" -> if (inItem) description = parser.nextText()
                         "pubdate" -> if (inItem) pubDate = parser.nextText()
                     }
+
                     XmlPullParser.END_TAG -> if (parser.name.lowercase() == "item" && inItem) {
                         inItem = false
                         parseTyphoonItem(title, description, pubDate)?.let { results.add(it) }
@@ -103,9 +107,11 @@ class TyphoonRepository(private val context: Context) {
         return results
     }
 
-    private fun parseTyphoonItem(title: String, description: String, pubDate: String): TyphoonData? {
-        // JTWC titles look like: "Tropical Storm DANIKA (WP022026)"
-        // Description contains position, wind speed, etc.
+    private fun parseTyphoonItem(
+        title: String,
+        description: String,
+        pubDate: String
+    ): TyphoonData? {
         val titleLower = title.lowercase()
 
         val category = when {
@@ -113,15 +119,15 @@ class TyphoonRepository(private val context: Context) {
             titleLower.contains("typhoon") -> "Typhoon"
             titleLower.contains("tropical storm") -> "Tropical Storm"
             titleLower.contains("tropical depression") -> "Tropical Depression"
-            else -> return null  // Skip non-cyclone items
+            else -> return null
         }
 
-        // Extract storm name from title
-        val nameRegex = Regex("""(?:super typhoon|typhoon|tropical storm|tropical depression)\s+([A-Z]+)""", RegexOption.IGNORE_CASE)
+        val nameRegex = Regex(
+            """(?:super typhoon|typhoon|tropical storm|tropical depression)\s+([A-Z]+)""",
+            RegexOption.IGNORE_CASE
+        )
         val stormName = nameRegex.find(title)?.groupValues?.get(1) ?: "Unknown"
 
-        // Extract position from description
-        // JTWC format: "...CENTER LOCATED NEAR 14.2N 121.5E..."
         val posRegex = Regex("""(\d+\.\d+)([NS])\s+(\d+\.\d+)([EW])""")
         val posMatch = posRegex.find(description)
 
@@ -132,8 +138,8 @@ class TyphoonRepository(private val context: Context) {
             if (posMatch.groupValues[4] == "W") lon = -lon
             Pair(lat, lon)
         } else {
-            // Try decimal format
-            val decRegex = Regex("""LAT[:\s]+([-\d.]+).*LON[:\s]+([-\d.]+)""", RegexOption.IGNORE_CASE)
+            val decRegex =
+                Regex("""LAT[:\s]+([-\d.]+).*LON[:\s]+([-\d.]+)""", RegexOption.IGNORE_CASE)
             val decMatch = decRegex.find(description) ?: return null
             Pair(
                 decMatch.groupValues[1].toDoubleOrNull() ?: return null,
@@ -141,14 +147,16 @@ class TyphoonRepository(private val context: Context) {
             )
         }
 
-        // Only include storms within or near PAR
         if (centerLat < PAR_MIN_LAT || centerLat > PAR_MAX_LAT ||
-            centerLon < PAR_MIN_LON || centerLon > PAR_MAX_LON) {
+            centerLon < PAR_MIN_LON || centerLon > PAR_MAX_LON
+        ) {
             return null
         }
 
-        // Extract max wind speed in knots, convert to kph
-        val windRegex = Regex("""MAX(?:IMUM)?\s+(?:SUSTAINED\s+)?WINDS?\s*[:\s]+(\d+)\s*KT""", RegexOption.IGNORE_CASE)
+        val windRegex = Regex(
+            """MAX(?:IMUM)?\s+(?:SUSTAINED\s+)?WINDS?\s*[:\s]+(\d+)\s*KT""",
+            RegexOption.IGNORE_CASE
+        )
         val windKnots = windRegex.find(description)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0
         val windKph = windKnots * 1.852
 
@@ -170,7 +178,10 @@ class TyphoonRepository(private val context: Context) {
         )
     }
 
-    private fun buildAlerts(typhoons: List<TyphoonData>, userLocation: Location?): List<DisasterAlert> {
+    private fun buildAlerts(
+        typhoons: List<TyphoonData>,
+        userLocation: Location?
+    ): List<DisasterAlert> {
         return typhoons.mapIndexed { index, typhoon ->
             val distanceKm = if (userLocation != null) {
                 val typhoonLoc = Location("").apply {
@@ -182,16 +193,18 @@ class TyphoonRepository(private val context: Context) {
 
             val severity = calculateSeverity(typhoon.windSpeedKph, distanceKm ?: 999.0)
 
-            // Map to PAGASA signal numbers for context
             val signalInfo = when {
                 typhoon.windSpeedKph >= 185 -> "Signal No. 4 or higher"
                 typhoon.windSpeedKph >= 118 -> "Signal No. 3"
-                typhoon.windSpeedKph >= 89  -> "Signal No. 2"
-                typhoon.windSpeedKph >= 62  -> "Signal No. 1"
-                else                        -> "Under monitoring"
+                typhoon.windSpeedKph >= 89 -> "Signal No. 2"
+                typhoon.windSpeedKph >= 62 -> "Signal No. 1"
+                else -> "Under monitoring"
             }
 
-            val sdf = java.text.SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", java.util.Locale.getDefault())
+            val sdf = java.text.SimpleDateFormat(
+                "MMM dd, yyyy 'at' hh:mm a",
+                java.util.Locale.getDefault()
+            )
             sdf.timeZone = java.util.TimeZone.getTimeZone("Asia/Manila")
             val timeStr = "Updated: ${sdf.format(java.util.Date(typhoon.timestamp))}"
 
@@ -211,9 +224,9 @@ class TyphoonRepository(private val context: Context) {
         return when {
             windKph >= 185 && distanceKm <= 200 -> Severity.CRITICAL
             windKph >= 118 && distanceKm <= 200 -> Severity.HIGH
-            windKph >= 89  && distanceKm <= 300 -> Severity.MODERATE
-            windKph >= 62  && distanceKm <= 400 -> Severity.LOW
-            else                                 -> Severity.LOW
+            windKph >= 89 && distanceKm <= 300 -> Severity.MODERATE
+            windKph >= 62 && distanceKm <= 400 -> Severity.LOW
+            else -> Severity.LOW
         }
     }
 
@@ -226,6 +239,8 @@ class TyphoonRepository(private val context: Context) {
         return try {
             val type = object : com.google.gson.reflect.TypeToken<List<TyphoonData>>() {}.type
             gson.fromJson(json, type)
-        } catch (e: Exception) { emptyList() }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 }

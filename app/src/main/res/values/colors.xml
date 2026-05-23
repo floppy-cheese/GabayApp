@@ -9,13 +9,11 @@
     <color name="white">#FFFFFFFF</color>
     <color name="colorPrimary">#4CAF50</color>
 
-    <!-- Gabay Theme Colors -->
     <color name="primary_green">#4CAF50</color>
     <color name="primary_red">#FF5252</color>
     <color name="primary_orange">#FF9800</color>
     <color name="primary_blue">#2196F3</color>
 
-    <!-- Preparedness Levels -->
     <color name="preparedness_basic">#F44336</color>
     <color name="preparedness_moderate">#FF9800</color>
     <color name="preparedness_high">#4CAF50</color>

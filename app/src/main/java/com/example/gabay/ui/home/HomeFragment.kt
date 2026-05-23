@@ -27,8 +27,6 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var viewModel: HomeViewModel
 
-    // Tracks whether the first live fetch has completed
-    // Prevents notifying user on cached/stale data at startup
     private var hasCompletedFirstLiveFetch = false
 
     private fun extractMagnitude(description: String): Double {
@@ -113,47 +111,44 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.lessonsFragment)
         }
 
-        // ── Mock: Earthquake full screen alert ───────────────────────
-        binding.btnTestAlert.setOnClickListener {
-            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                putExtra("disaster_type", "EARTHQUAKE")
-                putExtra("magnitude", 6.2)
-                putExtra("location", "Tingloy, Batangas")
-                putExtra("distance", 45.0)
-                putExtra("reportedTime", "Reported on: Apr 06, 2026 at 03:14 PM")
-                putExtra("actionText", "EVACUATE NOW")
-            }
-            startActivity(intent)
-        }
-
-        // ── Mock: Typhoon full screen alert ──────────────────────────
-        binding.btnTestTyphoon.setOnClickListener {
-            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                putExtra("disaster_type", "TYPHOON")
-                putExtra("location", "Typhoon DANIKA")
-                putExtra("signal_no", "Signal No. 2")
-                putExtra("wind_speed", 120)
-                putExtra("distance", 150.0)
-                putExtra("reportedTime", "Updated: Apr 29, 2026 at 06:00 PM")
-                putExtra("actionText", "PREPARE TO EVACUATE")
-            }
-            startActivity(intent)
-        }
-
-        // ── Mock: Notification alert ──────────────────────────
-        binding.btnTestNotification.setOnClickListener {
-            val mockAlert = DisasterAlert(
-                id = "notif_test",
-                type = com.example.gabay.data.models.DisasterType.TYPHOON,
-                description = "Typhoon DANIKA — Signal No. 2\nMax winds: 120 km/h\nUpdated: Apr 29, 2026 at 06:00 PM",
-                distanceKm = 150.0,
-                severity = Severity.HIGH,
-                isActive = true
-            )
-            AlertNotificationManager.sendDisasterNotification(requireContext(), mockAlert)
-        }
+//        binding.btnTestAlert.setOnClickListener {
+//            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
+//                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//                putExtra("disaster_type", "EARTHQUAKE")
+//                putExtra("magnitude", 6.2)
+//                putExtra("location", "Tingloy, Batangas")
+//                putExtra("distance", 45.0)
+//                putExtra("reportedTime", "Reported on: Apr 06, 2026 at 03:14 PM")
+//                putExtra("actionText", "EVACUATE NOW")
+//            }
+//            startActivity(intent)
+//        }
+//
+//        binding.btnTestTyphoon.setOnClickListener {
+//            val intent = Intent(requireContext(), FullScreenAlertActivity::class.java).apply {
+//                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//                putExtra("disaster_type", "TYPHOON")
+//                putExtra("location", "Typhoon DANIKA")
+//                putExtra("signal_no", "Signal No. 2")
+//                putExtra("wind_speed", 120)
+//                putExtra("distance", 150.0)
+//                putExtra("reportedTime", "Updated: Apr 29, 2026 at 06:00 PM")
+//                putExtra("actionText", "PREPARE TO EVACUATE")
+//            }
+//            startActivity(intent)
+//        }
+//
+//        binding.btnTestNotification.setOnClickListener {
+//            val mockAlert = DisasterAlert(
+//                id = "notif_test",
+//                type = com.example.gabay.data.models.DisasterType.TYPHOON,
+//                description = "Typhoon DANIKA — Signal No. 2\nMax winds: 120 km/h\nUpdated: Apr 29, 2026 at 06:00 PM",
+//                distanceKm = 150.0,
+//                severity = Severity.HIGH,
+//                isActive = true
+//            )
+//            AlertNotificationManager.sendDisasterNotification(requireContext(), mockAlert)
+//        }
     }
 
     private fun observeLocation() {
@@ -184,7 +179,6 @@ class HomeFragment : Fragment() {
         viewModel.isLoadingAlerts.observe(viewLifecycleOwner) { isLoading ->
             _binding?.let { binding ->
                 if (isLoading && !hasCompletedFirstLiveFetch) {
-                    // Show neutral loading state — don't show stale cache
                     binding.cardDisasterAlert.setCardBackgroundColor(
                         resources.getColor(android.R.color.white, null)
                     )
@@ -223,8 +217,6 @@ class HomeFragment : Fragment() {
                     val mostSevere = activeAlerts.maxByOrNull { it.severity.ordinal }!!
                     updateAlertCard(mostSevere)
 
-                    // Only notify after first live fetch completes
-                    // This prevents notifying on stale cached data at startup
                     if (hasCompletedFirstLiveFetch &&
                         (mostSevere.severity == Severity.HIGH ||
                                 mostSevere.severity == Severity.CRITICAL)
@@ -285,7 +277,6 @@ class HomeFragment : Fragment() {
                 )
             }
 
-            // Type-specific icon prefix
             val typeIcon = when (alert.type) {
                 com.example.gabay.data.models.DisasterType.TYPHOON    -> "🌀"
                 com.example.gabay.data.models.DisasterType.EARTHQUAKE -> "🌍"

@@ -19,14 +19,13 @@ class FullScreenAlertActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFullScreenAlertBinding
     private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
+    private var vibration: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityFullScreenAlertBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Show over lock screen and wake device
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -39,7 +38,6 @@ class FullScreenAlertActivity : AppCompatActivity() {
                     WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
-        // Read intent extras
         val disasterType = intent.getStringExtra("disaster_type") ?: "EARTHQUAKE"
         val magnitude = intent.getDoubleExtra("magnitude", 0.0)
         val location = intent.getStringExtra("location") ?: "Unknown location"
@@ -51,7 +49,6 @@ class FullScreenAlertActivity : AppCompatActivity() {
 
         binding.tvAlertTitle.text = actionText
 
-        // Show type-appropriate info in the detail card
         if (disasterType == "TYPHOON") {
             binding.tvMagnitude.text = "$location — $signalNo"
             binding.tvLocation.text = "Max winds: $windSpeed km/h"
@@ -75,7 +72,6 @@ class FullScreenAlertActivity : AppCompatActivity() {
 
     private fun startAlarm() {
         try {
-            // Max volume on alarm stream
             val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
             audioManager.setStreamVolume(
                 AudioManager.STREAM_ALARM,
@@ -83,7 +79,6 @@ class FullScreenAlertActivity : AppCompatActivity() {
                 0
             )
 
-            // Use default alarm ringtone
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
@@ -103,9 +98,9 @@ class FullScreenAlertActivity : AppCompatActivity() {
             android.util.Log.e("FullScreenAlert", "Alarm error: ${e.message}")
         }
 
-        // Vibrate in SOS pattern: ... --- ...
+        // Vibrates in SOS pattern: ... --- ...
         try {
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            vibration = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
@@ -123,10 +118,10 @@ class FullScreenAlertActivity : AppCompatActivity() {
             )
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                vibration?.vibrate(VibrationEffect.createWaveform(pattern, 0))
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
+                vibration?.vibrate(pattern, 0)
             }
         } catch (e: Exception) {
             android.util.Log.e("FullScreenAlert", "Vibrate error: ${e.message}")
@@ -137,8 +132,8 @@ class FullScreenAlertActivity : AppCompatActivity() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-        vibrator?.cancel()
-        vibrator = null
+        vibration?.cancel()
+        vibration = null
     }
 
     private fun launchEvacuation(isWalking: Boolean) {

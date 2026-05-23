@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="#CC0000">
 
-    <!-- Alert Icon -->
     <TextView
         android:id="@+id/tvAlertIcon"
         android:layout_width="wrap_content"
@@ -18,7 +17,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Alert Title -->
     <TextView
         android:id="@+id/tvAlertTitle"
         android:layout_width="wrap_content"
@@ -33,7 +31,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Alert Details Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardAlertDetails"
         android:layout_width="0dp"
@@ -93,7 +90,6 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Transport Selection Label -->
     <TextView
         android:id="@+id/tvTransportLabel"
         android:layout_width="wrap_content"
@@ -107,7 +103,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Walking Button -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btnWalking"
         android:layout_width="0dp"
@@ -146,7 +141,6 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Vehicle Button -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btnVehicle"
         android:layout_width="0dp"
@@ -185,7 +179,6 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Dismiss Button -->
     <Button
         android:id="@+id/btnDismiss"
         android:layout_width="wrap_content"

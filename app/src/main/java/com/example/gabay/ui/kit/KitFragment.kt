@@ -90,7 +90,6 @@ class KitFragment : Fragment() {
             if (_binding != null) {
                 binding.tvPreparedness.text = status.level
 
-                // Update background color
                 val drawable = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = 16f

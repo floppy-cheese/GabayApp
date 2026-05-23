@@ -28,7 +28,6 @@ object AlertNotificationManager {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Critical channel — high priority, makes sound, shows heads-up
         val criticalChannel = NotificationChannel(
             CHANNEL_ID_CRITICAL,
             "Critical Disaster Alerts",
@@ -39,7 +38,6 @@ object AlertNotificationManager {
             enableLights(true)
         }
 
-        // General channel — lower priority for informational alerts
         val generalChannel = NotificationChannel(
             CHANNEL_ID_GENERAL,
             "Disaster Updates",
@@ -57,7 +55,6 @@ object AlertNotificationManager {
         val isCritical = alert.severity == Severity.CRITICAL
         val isHighOrCritical = alert.severity == Severity.HIGH || isCritical
 
-        // M5.0+ → full-screen alert activity
         if (isHighOrCritical) {
             val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -111,7 +108,6 @@ object AlertNotificationManager {
             } catch (e: SecurityException) { }
 
         } else {
-            // M4.5+ → standard notification, respects DND
             val tapIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
@@ -137,7 +133,6 @@ object AlertNotificationManager {
         }
     }
 
-    // Helper functions to extract parts from description string
     private fun extractMagnitude(description: String): Double {
         val regex = Regex("""Magnitude (\d+\.\d+)""")
         return regex.find(description)?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0

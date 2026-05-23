@@ -2,7 +2,7 @@ package com.example.gabay.data.models
 
 data class PhoneNumber(
     val number: String,
-    val label: String  // e.g. "Hotline", "Globe", "Smart", "Landline", "Trunk Line"
+    val label: String
 )
 
 data class EmergencyContact(
@@ -12,11 +12,10 @@ data class EmergencyContact(
     val type: ContactType,
     val region: String? = null
 ) {
-    // Convenience: primary number is always the first in the list
     val primaryNumber: String get() = numbers.firstOrNull()?.number ?: ""
 }
 
 enum class ContactType {
     EMERGENCY_HOTLINE, POLICE, FIRE,
-    MEDICAL, DISASTER_RESPONSE, LOCAL_GOVERNMENT
+    MEDICAL, DISASTER_RESPONSE
 }

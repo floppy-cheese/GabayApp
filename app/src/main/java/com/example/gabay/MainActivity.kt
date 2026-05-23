@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
             handleEvacuationIntent(intent)
         }
 
-        // Check full screen intent permission on Android 14+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (!notifManager.canUseFullScreenIntent()) {
@@ -71,7 +70,6 @@ class MainActivity : AppCompatActivity() {
                 putBoolean("auto_travel_mode_walking", isWalking)
                 putBoolean("skip_safety_check", true)
             }
-            // Small delay to ensure navController is ready
             binding.root.post {
                 navController.navigate(R.id.evacuationFragment, bundle)
             }
@@ -105,14 +103,12 @@ class MainActivity : AppCompatActivity() {
     private fun requestAllPermissions() {
         val permissionsNeeded = mutableListOf<String>()
 
-        // Location
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION)
             permissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
 
-        // Notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -135,6 +131,5 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        // Permissions handled silently — app degrades gracefully if denied
     }
 }

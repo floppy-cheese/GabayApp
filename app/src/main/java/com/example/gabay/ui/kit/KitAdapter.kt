@@ -25,7 +25,6 @@ class KitAdapter(
         holder.bind(getItem(position))
     }
 
-    // Prevent items from being recycled incorrectly
     override fun getItemId(position: Int): Long {
         return getItem(position).id.toLongOrNull() ?: position.toLong()
     }
@@ -39,11 +38,9 @@ class KitAdapter(
             binding.tvItemDescription.text = item.description
             binding.tvItemQuantity.text = "Quantity: ${item.calculatedQuantity}"
 
-            // Set checkbox state without triggering listener
             binding.checkboxItem.setOnCheckedChangeListener(null)
             binding.checkboxItem.isChecked = item.isChecked
 
-            // Add listener after setting state
             binding.checkboxItem.setOnCheckedChangeListener { _, isChecked ->
                 onItemChecked(item, isChecked)
             }
@@ -62,7 +59,6 @@ class KitAdapter(
             oldItem: EmergencyKitItem,
             newItem: EmergencyKitItem
         ): Boolean {
-            // Only update if these specific fields changed
             return oldItem.name == newItem.name &&
                     oldItem.isChecked == newItem.isChecked &&
                     oldItem.calculatedQuantity == newItem.calculatedQuantity &&
@@ -70,7 +66,6 @@ class KitAdapter(
         }
 
         override fun getChangePayload(oldItem: EmergencyKitItem, newItem: EmergencyKitItem): Any? {
-            // Return specific change to avoid full rebind
             return if (oldItem.isChecked != newItem.isChecked) {
                 "CHECKED_CHANGED"
             } else if (oldItem.calculatedQuantity != newItem.calculatedQuantity) {

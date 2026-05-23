@@ -1,7 +1,9 @@
 package com.example.gabay.worker
 
+import android.Manifest
 import android.content.Context
 import android.location.Location
+import androidx.annotation.RequiresPermission
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.gabay.data.models.Severity
@@ -13,11 +15,11 @@ class DisasterCheckWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override suspend fun doWork(): Result {
         return try {
             val disasterRepo = DisasterRepository(context)
 
-            // Get last known location from cache
             val locationPrefs = context.getSharedPreferences("location_cache", Context.MODE_PRIVATE)
             val lat = locationPrefs.getFloat("last_lat", 0f).toDouble()
             val lon = locationPrefs.getFloat("last_lon", 0f).toDouble()
@@ -31,7 +33,6 @@ class DisasterCheckWorker(
 
             val alerts = disasterRepo.getDisasterAlerts(location)
 
-            // Only notify for HIGH and CRITICAL
             val notifiableAlerts = alerts.filter {
                 it.severity == Severity.HIGH || it.severity == Severity.CRITICAL
             }

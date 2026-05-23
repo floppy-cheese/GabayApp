@@ -5,22 +5,18 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Shield outer — wide and square proportioned -->
     <path
         android:fillColor="#4CAF50"
         android:pathData="M54,10 L92,26 L92,54 C92,74 74,88 54,96 C34,88 16,74 16,54 L16,26 Z" />
 
-    <!-- Shield inner darker -->
     <path
         android:fillColor="#388E3C"
         android:pathData="M54,18 L85,32 L85,54 C85,70 70,82 54,89 C38,82 23,70 23,54 L23,32 Z" />
 
-    <!-- Navigation arrow — properly centered at 54,53 -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,30 L68,68 L54,61 L40,68 Z" />
 
-    <!-- Arrow left half shading for depth -->
     <path
         android:fillColor="#E8F5E9"
         android:fillAlpha="0.4"

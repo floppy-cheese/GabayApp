@@ -3,7 +3,6 @@ package com.example.gabay.ui.contacts
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -73,10 +72,8 @@ class ContactsAdapter(
             val isExpanded = contact.id in expandedIds
             val hasMultiple = contact.numbers.size > 1
 
-            // Primary number always visible in the blue number field
             binding.tvContactNumber.text = contact.primaryNumber
 
-            // Expand indicator: show count + tap hint
             if (hasMultiple) {
                 binding.tvExpandIndicator.visibility = View.VISIBLE
                 binding.tvExpandIndicator.text = if (isExpanded)
@@ -87,7 +84,6 @@ class ContactsAdapter(
                 binding.tvExpandIndicator.visibility = View.GONE
             }
 
-            // Build expanded rows
             binding.layoutExtraNumbers.removeAllViews()
             if (isExpanded && hasMultiple) {
                 binding.layoutExtraNumbers.visibility = View.VISIBLE
@@ -95,7 +91,6 @@ class ContactsAdapter(
                     val row = LayoutInflater.from(binding.root.context)
                         .inflate(R.layout.item_phone_row, binding.layoutExtraNumbers, false)
 
-                    // Show "Label — Number" so both are always visible
                     val labelText = if (index == 0) "${phone.label} (Primary)" else phone.label
                     row.findViewById<TextView>(R.id.tv_phone_label).text = labelText
                     row.findViewById<TextView>(R.id.tv_phone_number).text = phone.number
@@ -109,12 +104,10 @@ class ContactsAdapter(
                 binding.layoutExtraNumbers.visibility = View.GONE
             }
 
-            // Collapsed call button → dials primary
             binding.btnCall.setOnClickListener {
                 onCallClick(contact.numbers.first())
             }
 
-            // Tap card to expand/collapse
             binding.root.setOnClickListener {
                 if (hasMultiple) {
                     if (contact.id in expandedIds) expandedIds.remove(contact.id)

@@ -87,7 +87,6 @@ class HomeViewModel(
 
     fun fetchDisasterAlerts(location: Location? = _currentLocation.value) {
         val now = System.currentTimeMillis()
-        // Don't fetch if we fetched less than 60 seconds ago
         if (now - lastFetchTime < 60_000L && lastFetchTime != 0L) return
 
         if (location == null) {

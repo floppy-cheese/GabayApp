@@ -16,7 +16,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Top row: name + call button side by side -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -58,7 +57,6 @@
                     android:textColor="#999999"
                     android:textAllCaps="true" />
 
-                <!-- Expand indicator — hidden when only 1 number -->
                 <TextView
                     android:id="@+id/tvExpandIndicator"
                     android:layout_width="wrap_content"
@@ -85,7 +83,6 @@
 
         </LinearLayout>
 
-        <!-- Expanded numbers list — hidden by default -->
         <LinearLayout
             android:id="@+id/layoutExtraNumbers"
             android:layout_width="match_parent"

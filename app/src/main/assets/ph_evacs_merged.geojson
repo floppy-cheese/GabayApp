@@ -70744,6 +70744,289 @@
           14.709351
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Disaster Building",
+        "place": "Disaster Building",
+        "municipality": "New Era",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "government building",
+        "capacity": "500",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0391, 14.6972] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MRF Building",
+        "place": "MRF Building",
+        "municipality": "New Era",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "government building",
+        "capacity": "300",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0382, 14.6965] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dead End Court",
+        "place": "Dead End Court",
+        "municipality": "Baesa",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "300",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0042, 14.7185] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Balon-Bato Health Center",
+        "place": "Balon-Bato Health Center",
+        "municipality": "Balong-bato",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "health center",
+        "capacity": "200",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0058, 14.7162] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Balon-Bato Elementary School",
+        "place": "Balon-Bato Elementary School",
+        "municipality": "Balong-bato",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "elementary school",
+        "capacity": "800",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0065, 14.7155] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vargas Compound Covered Court",
+        "place": "Vargas Compound Covered Court",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "400",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0530, 14.6850] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Culiat Multipurpose Hall",
+        "place": "Multipurpose Hall",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "multi-purpose hall",
+        "capacity": "500",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0518, 14.6842] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dunong Kabuhayan Training Center",
+        "place": "Dunong Kabuhayan Training Center",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "training center",
+        "capacity": "300",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0524, 14.6858] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Culiat High School",
+        "place": "Culiat High School",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "high school",
+        "capacity": "1200",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0511, 14.6835] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Salam Covered Court",
+        "place": "Salam Covered Court",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "350",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0537, 14.6863] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Culiat Covered Court",
+        "place": "Covered Court",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "300",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0543, 14.6870] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bernardo Covered Court Multi-Purpose Hall",
+        "place": "Bernardo Covered Court Multi-Purpose Hall",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "multi-purpose hall",
+        "capacity": "500",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0505, 14.6828] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pael Multipurpose Hall",
+        "place": "Pael Multipurpose Hall",
+        "municipality": "Culiat",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "multi-purpose hall",
+        "capacity": "400",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0498, 14.6820] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marcel Village Covered Court",
+        "place": "Marcel Village Covered Court",
+        "municipality": "Pasong Tamo",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "350",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0442, 14.6731] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Veteran ANNEX I",
+        "place": "Veteran ANNEX I",
+        "municipality": "Pasong Tamo",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "government building",
+        "capacity": "400",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0451, 14.6738] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pingkian / Central ANNEX II",
+        "place": "Pingkian / Central ANNEX II",
+        "municipality": "Pasong Tamo",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "government building",
+        "capacity": "400",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0460, 14.6745] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "New Era University Gymnasium",
+        "place": "New Era University Gymnasium",
+        "municipality": "New Era",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "gymnasium",
+        "capacity": "2000",
+        "source": "QC DRRMO / New Era University"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0388, 14.6975] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "New Era Elementary School",
+        "place": "New Era Elementary School",
+        "municipality": "New Era",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "elementary school",
+        "capacity": "800",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0375, 14.6968] }
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "New Era Covered Court",
+        "place": "New Era Covered Court",
+        "municipality": "New Era",
+        "city": "Quezon City",
+        "province": "Metro Manila",
+        "type": "covered court",
+        "capacity": "400",
+        "source": "QC DRRMO Official List"
+      },
+      "geometry": { "type": "Point", "coordinates": [121.0395, 14.6980] }
     }
   ]
 }

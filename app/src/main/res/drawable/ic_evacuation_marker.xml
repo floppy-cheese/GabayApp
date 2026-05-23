@@ -5,12 +5,10 @@
     android:viewportWidth="48"
     android:viewportHeight="48">
 
-    <!-- Pin body (red) -->
     <path
         android:fillColor="#F44336"
         android:pathData="M24,2 C16.268,2 10,8.268 10,16 C10,26 24,46 24,46 C24,46 38,26 38,16 C38,8.268 31.732,2 24,2 Z" />
 
-    <!-- White circle inside pin -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M24,9 C19.582,9 16,12.582 16,17 C16,21.418 19.582,25 24,25 C28.418,25 32,21.418 32,17 C32,12.582 28.418,9 24,9 Z" />

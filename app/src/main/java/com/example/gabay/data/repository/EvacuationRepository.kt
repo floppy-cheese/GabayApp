@@ -15,8 +15,6 @@ class EvacuationRepository(private val context: Context) {
     private val gson = Gson()
     private var isLoaded = false
 
-    // ── Data loading ─────────────────────────────────────────────────────────
-
     private var loadedForLat: Double? = null
     private var loadedForLon: Double? = null
     private val RELOAD_THRESHOLD_KM = 5.0
@@ -50,7 +48,6 @@ class EvacuationRepository(private val context: Context) {
                     val properties = feature.getAsJsonObject("properties")
                     val geometry   = feature.getAsJsonObject("geometry")
 
-                    // Guard: geometry can be a JsonNull element in malformed features
                     if (geometry == null || geometry.isJsonNull) return@mapIndexedNotNull null
                     val geometryType = geometry.get("type")
                         ?.takeIf { !it.isJsonNull }?.asString ?: return@mapIndexedNotNull null
@@ -70,7 +67,6 @@ class EvacuationRepository(private val context: Context) {
                         else -> null
                     } ?: return@mapIndexedNotNull null
 
-                    // Radius filter before any string parsing
                     val dist = calculateDistance(centerPoint.second, centerPoint.first, userLat, userLon)
                     if (dist > FILTER_RADIUS_KM) return@mapIndexedNotNull null
 
@@ -136,17 +132,13 @@ class EvacuationRepository(private val context: Context) {
         else -> listOf("Shelter", "Water", "Toilets")
     }
 
-    // ── Public queries ────────────────────────────────────────────────────────
-
     suspend fun getAllCenters(userLat: Double, userLon: Double): List<EvacuationCenter> {
         ensureLoaded(userLat, userLon); return allCenters
     }
 
-    /** Single-center wrapper kept for backward compatibility. */
     suspend fun findNearestCenter(userLat: Double, userLon: Double): EvacuationCenter? =
         findNearestCenters(userLat, userLon, 1).firstOrNull()
 
-    /** Returns up to [count] centers sorted by straight-line distance, closest first. */
     suspend fun findNearestCenters(userLat: Double, userLon: Double, count: Int): List<EvacuationCenter> {
         ensureLoaded(userLat, userLon)
         if (allCenters.isEmpty()) {
@@ -158,19 +150,6 @@ class EvacuationRepository(private val context: Context) {
             .take(count)
     }
 
-    // ── Routing ───────────────────────────────────────────────────────────────
-
-    /**
-     * Routing waterfall — four tiers, fail-fast at each step:
-     *
-     *  1. Valhalla primary   (valhalla1.openstreetmap.de) — 5 s connect / 8 s read
-     *  2. Valhalla alternate (valhalla.openstreetmap.de)  — 5 s connect / 8 s read
-     *  3. OSRM demo server   (router.project-osrm.org)   — browser UA required
-     *  4. Enriched straight-line fallback                 — instant, always succeeds
-     *
-     * The `routeSource` field on [RouteInfo] records which tier was used so
-     * the Fragment can choose the correct zoom level (Fix 3).
-     */
     suspend fun calculateRouteWithOSRM(
         fromLat: Double, fromLon: Double,
         toLat: Double,   toLon: Double,
@@ -182,7 +161,6 @@ class EvacuationRepository(private val context: Context) {
         else
             ((distanceKm / 25.0) * 60).toInt()
 
-        // ── Tier 1: Valhalla primary ──────────────────────────────────────────
         try {
             val result = tryValhalla("https://valhalla1.openstreetmap.de/route", fromLat, fromLon, toLat, toLon, mode)
             if (result != null) {
@@ -194,7 +172,6 @@ class EvacuationRepository(private val context: Context) {
             android.util.Log.w("EvacuationRepo", "Valhalla-1 failed: ${e.message}")
         }
 
-        // ── Tier 2: Valhalla alternate ────────────────────────────────────────
         try {
             val result = tryValhalla("https://valhalla.openstreetmap.de/route", fromLat, fromLon, toLat, toLon, mode)
             if (result != null) {
@@ -206,7 +183,6 @@ class EvacuationRepository(private val context: Context) {
             android.util.Log.w("EvacuationRepo", "Valhalla-2 failed: ${e.message}")
         }
 
-        // ── Tier 3: OSRM ─────────────────────────────────────────────────────
         try {
             val result = tryOSRM(fromLat, fromLon, toLat, toLon, mode)
             if (result != null) {
@@ -218,18 +194,10 @@ class EvacuationRepository(private val context: Context) {
             android.util.Log.w("EvacuationRepo", "OSRM failed: ${e.message}")
         }
 
-        // ── Tier 4: enriched straight-line ────────────────────────────────────
         android.util.Log.w("EvacuationRepo", "All routing services unreachable — using enriched fallback")
         return buildEnrichedFallback(fromLat, fromLon, toLat, toLon, distanceKm, timeMinutes, mode)
     }
 
-    // ── Tier 1 & 2: Valhalla ─────────────────────────────────────────────────
-
-    /**
-     * Shared Valhalla caller — accepts any Valhalla-compatible [url].
-     * Returns null (rather than throwing) for non-200 HTTP or empty maneuvers
-     * so the caller can cleanly fall through to the next tier.
-     */
     private fun tryValhalla(
         url: String,
         fromLat: Double, fromLon: Double,
@@ -243,7 +211,6 @@ class EvacuationRepository(private val context: Context) {
         connection.requestMethod  = "POST"
         connection.doOutput       = true
         connection.setRequestProperty("Content-Type", "application/json")
-        // Some Valhalla hosts check the User-Agent; present as a browser to be safe.
         connection.setRequestProperty("User-Agent",
             "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/120 Safari/537.36")
         connection.outputStream.use { it.write(requestBody.toByteArray()) }
@@ -314,22 +281,6 @@ class EvacuationRepository(private val context: Context) {
         }
     }
 
-    // ── Tier 3: OSRM ─────────────────────────────────────────────────────────
-
-    /**
-     * Hits the public OSRM demo server.
-     * - Walking uses the `foot` profile; driving uses `driving`.
-     * - Returns null (rather than throwing) on HTTP error or empty steps
-     *   so the caller falls through to tier 4.
-     *
-     * IMPORTANT: The demo server returns 403 for non-browser User-Agents.
-     * We spoof a Chrome UA to pass that check — this is the same UA used
-     * by the Valhalla call above for consistency.
-     *
-     * URL pattern:
-     *   https://router.project-osrm.org/route/v1/{profile}/{lon,lat};{lon,lat}
-     *   ?steps=true&geometries=geojson&overview=full&annotations=false
-     */
     private fun tryOSRM(
         fromLat: Double, fromLon: Double,
         toLat: Double,   toLon: Double,
@@ -344,7 +295,6 @@ class EvacuationRepository(private val context: Context) {
         connection.connectTimeout = 5_000
         connection.readTimeout    = 8_000
         connection.requestMethod  = "GET"
-        // Must look like a browser — the demo server 403s anything else
         connection.setRequestProperty("User-Agent",
             "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/120 Safari/537.36")
         connection.setRequestProperty("Accept", "application/json")
@@ -360,7 +310,6 @@ class EvacuationRepository(private val context: Context) {
     }
 
     private fun parseOSRMResponse(json: JsonObject, mode: TravelMode): RouteInfo? {
-        // Top-level: { "code": "Ok", "routes": [...] }
         if (json.get("code")?.asString != "Ok") return null
         val routes = json.getAsJsonArray("routes") ?: return null
         if (routes.size() == 0) return null
@@ -371,7 +320,6 @@ class EvacuationRepository(private val context: Context) {
         val distanceKm  = distanceM / 1000.0
         val timeMinutes = (durationS / 60.0).toInt()
 
-        // Geometry is GeoJSON LineString: { "type":"LineString", "coordinates":[[lon,lat],...] }
         val coords = route.getAsJsonObject("geometry")
             ?.getAsJsonArray("coordinates") ?: return null
         val waypoints = (0 until coords.size()).map { i ->
@@ -380,7 +328,6 @@ class EvacuationRepository(private val context: Context) {
         }
         if (waypoints.size < 2) return null
 
-        // Steps live inside legs[0].steps
         val legs  = route.getAsJsonArray("legs") ?: return null
         if (legs.size() == 0) return null
         val steps = legs[0].asJsonObject.getAsJsonArray("steps") ?: return null
@@ -391,20 +338,6 @@ class EvacuationRepository(private val context: Context) {
         return RouteInfo(distanceKm, timeMinutes, mode, waypoints, maneuvers, RouteSource.OSRM)
     }
 
-    /**
-     * Converts OSRM step objects into [Maneuver] instances.
-     *
-     * Each OSRM step has:
-     *   - maneuver.instruction (not present by default — we synthesize it)
-     *   - maneuver.type  ("turn", "depart", "arrive", "roundabout", …)
-     *   - maneuver.modifier ("left", "right", "straight", "slight left", …)
-     *   - name  — the street name for the step
-     *   - distance — metres for this step
-     *   - geometry.coordinates[0] — the GeoPoint at the start of the step
-     *
-     * We find the closest waypoint index for the step's start point so the
-     * advanceManeuverIfNeeded logic in the Fragment still works correctly.
-     */
     private fun parseOSRMSteps(steps: JsonArray, waypoints: List<Waypoint>): List<Maneuver> {
         val maneuvers = mutableListOf<Maneuver>()
         var cumulativeDistKm = 0.0
@@ -466,15 +399,6 @@ class EvacuationRepository(private val context: Context) {
         }
     }
 
-    // ── Tier 3: Enriched straight-line fallback ───────────────────────────────
-
-    /**
-     * Builds a straight-line route with synthetic turn-by-turn maneuvers.
-     * Used when both Valhalla and OSRM are unreachable.
-     *
-     * `routeSource` is set to [RouteSource.FALLBACK] so the Fragment zooms
-     * to level 15 instead of 18 (tile-cache-friendly, avoids gray tiles).
-     */
     private fun buildEnrichedFallback(
         fromLat: Double, fromLon: Double,
         toLat: Double,   toLon: Double,
@@ -518,8 +442,6 @@ class EvacuationRepository(private val context: Context) {
 
         return RouteInfo(distanceKm, timeMinutes, mode, waypoints, maneuvers, RouteSource.FALLBACK)
     }
-
-    // ── Geometry helpers ──────────────────────────────────────────────────────
 
     private fun bearingDegrees(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val dLon = Math.toRadians(lon2 - lon1)
@@ -566,7 +488,6 @@ class EvacuationRepository(private val context: Context) {
         return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
-    // Kept for callers that use the non-suspend version
     fun calculateRoute(
         fromLat: Double, fromLon: Double,
         toLat: Double,   toLon: Double,
@@ -576,5 +497,4 @@ class EvacuationRepository(private val context: Context) {
         val timeMinutes = if (mode == TravelMode.WALKING)
             ((distanceKm / 4.0) * 60).toInt() else ((distanceKm / 25.0) * 60).toInt()
         return buildEnrichedFallback(fromLat, fromLon, toLat, toLon, distanceKm, timeMinutes, mode)
-    }
-}
+    } }

@@ -73,7 +73,6 @@ class ContactsFragment : Fragment() {
                 buildContactList(null)
             }
         } else {
-            // No permission — show nationwide + default Metro Manila local
             buildContactList(null)
         }
     }

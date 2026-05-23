@@ -34,24 +34,21 @@ class KitViewModel(
     private fun loadKitItems() {
         val currentSize = _householdSize.value ?: 1
 
-        // Load fresh items from repository
         val basicItemsFromRepo = kitRepository.getBasicKitItems()
         android.util.Log.d("KitViewModel", "Loaded ${basicItemsFromRepo.size} basic items from repository")
 
-        // Calculate quantities
         val basicWithQuantities = basicItemsFromRepo.map { item ->
             item.copy(
                 calculatedQuantity = kitRepository.calculateQuantity(
                     currentSize,
                     item.quantityFormula
                 ),
-                isChecked = false // Reset checked state
+                isChecked = false
             )
         }
 
         _basicItems.value = basicWithQuantities
 
-        // Load additional items
         val additionalItemsFromRepo = kitRepository.getAdditionalKitItems()
         android.util.Log.d("KitViewModel", "Loaded ${additionalItemsFromRepo.size} additional items from repository")
 
@@ -89,7 +86,6 @@ class KitViewModel(
     private fun updateQuantitiesOnly() {
         val currentSize = _householdSize.value ?: 1
 
-        // Update basic items quantities while preserving checked state
         _basicItems.value = _basicItems.value?.map { item ->
             item.copy(
                 calculatedQuantity = kitRepository.calculateQuantity(
@@ -99,7 +95,6 @@ class KitViewModel(
             )
         }
 
-        // Update additional items quantities while preserving checked state
         _additionalItems.value = _additionalItems.value?.map { item ->
             item.copy(
                 calculatedQuantity = kitRepository.calculateQuantity(
@@ -145,17 +140,17 @@ class KitViewModel(
             percentage < 33 -> PreparednessStatus(
                 "Basic Preparedness ($percentage%)",
                 percentage,
-                android.graphics.Color.parseColor("#F44336") // Red
+                android.graphics.Color.parseColor("#F44336")
             )
             percentage < 66 -> PreparednessStatus(
                 "Moderate Preparedness ($percentage%)",
                 percentage,
-                android.graphics.Color.parseColor("#FF9800") // Orange
+                android.graphics.Color.parseColor("#FF9800")
             )
             else -> PreparednessStatus(
                 "High Preparedness ($percentage%)",
                 percentage,
-                android.graphics.Color.parseColor("#4CAF50") // Green
+                android.graphics.Color.parseColor("#4CAF50")
             )
         }
 

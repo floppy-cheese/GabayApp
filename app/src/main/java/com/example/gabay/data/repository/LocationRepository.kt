@@ -82,15 +82,12 @@ class LocationRepository(private val context: Context) {
 
     suspend fun getLocationInfo(latitude: Double, longitude: Double): LocationInfo {
         return try {
-            // Get multiple addresses to find best match
             val addresses = getAddressFromLocation(latitude, longitude, maxResults = 3)
 
             if (addresses.isNotEmpty()) {
-                // Try each address until we find one with good barangay info
                 for (address in addresses) {
                     val locationInfo = extractLocationInfo(address, latitude, longitude)
 
-                    // If we got a good barangay (not just "Road" or generic), use it
                     if (!locationInfo.barangay.contains("Road") &&
                         locationInfo.barangay != "Unknown Barangay" &&
                         !locationInfo.barangay.startsWith("Unnamed")) {
@@ -99,7 +96,6 @@ class LocationRepository(private val context: Context) {
                     }
                 }
 
-                // Fallback to first address even if not perfect
                 val firstAddress = addresses[0]
                 val locationInfo = extractLocationInfo(firstAddress, latitude, longitude)
 
@@ -142,35 +138,27 @@ class LocationRepository(private val context: Context) {
         android.util.Log.d("LocationRepo", "AdminArea: ${address.adminArea}")
         android.util.Log.d("LocationRepo", "Premises: ${address.premises}")
 
-        // Extract barangay/location from thoroughfare (street name)
-        // For PH addresses: thoroughfare often contains "Barangay Name Road" or just street name
         val barangay = when {
-            // First: Use thoroughfare (e.g., "Habay 1 Road" -> "Habay 1")
             !address.thoroughfare.isNullOrBlank() -> {
-                // Remove " Road" suffix if present
                 address.thoroughfare.replace(" Road", "").trim()
             }
 
-            // Second: subLocality if not "Road"
             !address.subLocality.isNullOrBlank() &&
                     !address.subLocality.equals("Road", ignoreCase = true) ->
                 address.subLocality
 
-            // Third: premises
             !address.premises.isNullOrBlank() ->
                 address.premises
 
             else -> "Unknown Area"
         }
 
-        // Use Locality for city
         val city = when {
             !address.locality.isNullOrBlank() -> address.locality
             !address.subAdminArea.isNullOrBlank() -> address.subAdminArea
             else -> "Unknown City"
         }
 
-        // Use SubAdminArea for province (more accurate than AdminArea which gives region)
         val province = when {
             !address.subAdminArea.isNullOrBlank() -> address.subAdminArea
             !address.adminArea.isNullOrBlank() -> address.adminArea

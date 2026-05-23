@@ -20,8 +20,6 @@ class EvacuationViewModel(
     private val evacuationRepository: EvacuationRepository
 ) : ViewModel() {
 
-    // ── Public LiveData ───────────────────────────────────────────────────────
-
     private val _currentLocation   = MutableLiveData<Location?>()
     val currentLocation: LiveData<Location?> = _currentLocation
 
@@ -49,8 +47,6 @@ class EvacuationViewModel(
     private val _alternatesRemaining = MutableLiveData(0)
     val alternatesRemaining: LiveData<Int> = _alternatesRemaining
 
-    // ── Internal state ────────────────────────────────────────────────────────
-
     private var locationJob:    Job? = null
     private var etaTrackingJob: Job? = null
     private var routingJob:     Job? = null
@@ -63,11 +59,6 @@ class EvacuationViewModel(
     private var rankedCenters: List<EvacuationCenter> = emptyList()
     private var currentCenterIndex = 0
 
-    /**
-     * Synchronous guard flag. Set to true BEFORE the coroutine launches so
-     * rapid taps on "Find Center" can never spawn multiple routing jobs.
-     * The Fragment checks this to disable the button immediately.
-     */
     var isRoutingActive: Boolean = false
         private set
 
@@ -78,8 +69,6 @@ class EvacuationViewModel(
     init {
         startLocationTracking()
     }
-
-    // ── Location tracking ─────────────────────────────────────────────────────
 
     private fun startLocationTracking() {
         locationJob = viewModelScope.launch {
@@ -124,16 +113,7 @@ class EvacuationViewModel(
         _currentSpeed.value = avgSpeed
     }
 
-    // ── Route finding ─────────────────────────────────────────────────────────
-
-    /**
-     * Primary entry-point called by the Fragment (button tap or auto-launch).
-     *
-     * [isRoutingActive] is set synchronously before the coroutine launches so
-     * no amount of rapid taps can create concurrent routing jobs.
-     */
     fun findNearestCenter(travelMode: TravelMode) {
-        // Hard guard — synchronous, checked before any async work
         if (isRoutingActive) {
             android.util.Log.d("EvacuationVM", "findNearestCenter ignored — already routing")
             return
@@ -145,7 +125,6 @@ class EvacuationViewModel(
             return
         }
 
-        // Mark active BEFORE launching — prevents race between quick successive calls
         isRoutingActive      = true
         routingJob?.cancel()
         currentTravelMode    = travelMode
@@ -211,12 +190,6 @@ class EvacuationViewModel(
         }
     }
 
-    /**
-     * Shared routing core. Runs the Valhalla call on IO.
-     * No retry loop here — the Repository handles a single attempt with a
-     * 5 s timeout and returns an enriched fallback (with synthetic maneuvers)
-     * if Valhalla is unreachable. Fail-fast is better than 30 s of retries.
-     */
     private suspend fun routeToCenter(
         location: Location,
         center: EvacuationCenter,
@@ -252,8 +225,6 @@ class EvacuationViewModel(
         currentCenterIndex       = 0
     }
 
-    // ── ETA tracking ──────────────────────────────────────────────────────────
-
     fun startETATracking() {
         etaTrackingJob?.cancel()
         etaTrackingJob = viewModelScope.launch {
@@ -285,8 +256,6 @@ class EvacuationViewModel(
         previousTime     = 0
         _currentSpeed.value = 0.0
     }
-
-    // ── Geometry ──────────────────────────────────────────────────────────────
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val r    = 6371.0
