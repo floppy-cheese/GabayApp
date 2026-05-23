@@ -108,7 +108,7 @@ All text sizes, icon sizes, padding, and banner margins reference `@dimen/evac_*
 
 ## Related
 
-- [LifelineTech Web Platform](https://github.com/) — The companion website this app extends
+- [LifelineTech Web Platform](https://lintech.infinityfree.me) — The companion website this app extends
 - [OsmDroid](https://github.com/osmdroid/osmdroid)
 - [Project OSRM](http://project-osrm.org/)
 - [Valhalla Routing Engine](https://valhalla.github.io/valhalla/)
