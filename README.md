@@ -1,10 +1,10 @@
-<img width="576" height="1280" alt="gabay_demo" src="https://github.com/user-attachments/assets/e6e117bb-5a78-4da5-a3da-d5bf156dc416" /># Gabay
+# Gabay
 
 Gabay is an Android companion app to the LifelineTech disaster preparedness web platform. It provides evacuation routing and nearest evacuation center identification for users in the Philippines. Developed with AI assistance.
 
 ---
 
-![Uploading gabay_demo.gif…]()
+<img height="500" alt="gabay_demo" src="https://github.com/user-attachments/assets/e6e117bb-5a78-4da5-a3da-d5bf156dc416" />
 
 ---
 
