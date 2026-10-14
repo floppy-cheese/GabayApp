@@ -1,18 +1,20 @@
-# Gabay
+<img width="576" height="1280" alt="gabay_demo" src="https://github.com/user-attachments/assets/e6e117bb-5a78-4da5-a3da-d5bf156dc416" /># Gabay
 
-Gabay is an Android companion app to the LifelineTech disaster preparedness web platform. It provides real-time evacuation routing and nearest evacuation center identification for users in the Philippines.
+Gabay is an Android companion app to the LifelineTech disaster preparedness web platform. It provides evacuation routing and nearest evacuation center identification for users in the Philippines. Developed with AI assistance.
+
+---
+
+![Uploading gabay_demo.gif…]()
 
 ---
 
 ## Features
 
-- **Real-time evacuation routing** — Routes the user to the nearest evacuation center using a 4-tier routing waterfall
-- **Alternate center switching** — If a path is blocked, the app cycles through up to 5 alternate evacuation centers
+- **Evacuation Routing with Fallbacks** — Routes the user to the nearest evacuation center through a four-step fallback chain: two Valhalla servers, then OSRM, then straight-line routing that needs no internet.
+- **Alternate center/route switching** — If a path is blocked, the app cycles through up to 5 alternate evacuation centers or alternate routes.
 - **ETA tracking** — Live estimated time of arrival updates every 3 seconds while navigating
-- **Earthquake data** — Pulls live seismic data from the USGS API
-- **Typhoon data** — Pulls latest tropical cyclone data from the JTWC RSS feed
-- **Offline fallback** — Straight-line routing with bearing-calculated maneuvers when all online sources fail
-
+- **Recent Earthquake data** — Fetches recent earthquake data from the USGS API within a set radius of the user.
+  
 ---
 
 ## Routing Architecture
@@ -52,9 +54,7 @@ Each `RouteInfo` object carries a `RouteSource` enum (`VALHALLA`, `OSRM`, `FALLB
 
 Evacuation centers are loaded from a bundled GeoJSON asset (`ph_evacs_merged.geojson`) containing 1654 features covering the Philippines. Both Point and Polygon geometries are supported — polygons are converted to centroids at load time.
 
-A supplementary patch file (`qc_official_evac_centers_patch.geojson`) adds 19 verified centers from the Quezon City DRRMO official list, covering barangays including Culiat, Pasong Tamo, New Era, Baesa, and Balong-bato.
-
-Centers are filtered to a 10km radius from the user's location and reload automatically if the user moves more than 5km from the load anchor. The app ranks and presents the 6 nearest centers, allowing the user to switch to alternates if needed.
+A supplementary patch file (`qc_official_evac_centers_patch.geojson`) adds 19 centers from the Quezon City DRRMO official list, covering barangays including Culiat, Pasong Tamo, New Era, Baesa, and Balong-bato.
 
 ---
 
@@ -79,6 +79,13 @@ assets/
 
 ---
 
+## Run it
+ 1. Clone the repo and open it in Android Studio.
+ 2. Let Gradle sync.
+ 3. Run on a device or emulator with Android 7.0 (API 24) or higher.
+
+---
+
 ## UI Scaling
 
 The app uses a two-tier dimension system to handle different screen sizes:
@@ -95,6 +102,7 @@ All text sizes, icon sizes, padding, and banner margins reference `@dimen/evac_*
 - Routing requires an active internet connection. The straight-line fallback activates automatically when all online routing sources are unavailable, but does not follow actual roads.
 - Evacuation center data is static and bundled at build time. Centers are not updated in real time.
 - The app is optimized for Metro Manila / NCR usage. Routing accuracy outside this area depends on Valhalla/OSRM coverage.
+- The app sends no alerts. Earthquake data comes from the USGS feed and shows recent events, not real-time warnings. Typhoon data is not currently fetched.
 
 ---
 
@@ -108,7 +116,6 @@ All text sizes, icon sizes, padding, and banner margins reference `@dimen/evac_*
 
 ## Related
 
-- [LifelineTech Web Platform](https://lintech.infinityfree.me) — The companion website this app extends
 - [OsmDroid](https://github.com/osmdroid/osmdroid)
 - [Project OSRM](http://project-osrm.org/)
 - [Valhalla Routing Engine](https://valhalla.github.io/valhalla/)
